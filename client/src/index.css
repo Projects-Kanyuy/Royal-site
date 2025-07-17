@@ -1,0 +1,30 @@
+/* src/index.css (Corrected Version) */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    /* Use the theme() function to correctly access your custom config values */
+    font-family: theme('fontFamily.sans');
+    background-color: theme('colors.white');
+    color: theme('colors.dark'); /* This is the main fix */
+  }
+  main {
+    @apply pt-20; /* pt-20 is a standard Tailwind utility, so @apply is fine here */
+  }
+}
+
+@layer components {
+  .container {
+    @apply max-w-7xl mx-auto px-4;
+  }
+}
+@layer utilities {
+  .text-stroke {
+    /* This creates a 1px black outline by layering shadows around the text */
+    text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+  }
+}
