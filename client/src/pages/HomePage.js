@@ -3,7 +3,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { FaUserShield } from 'react-icons/fa';
 import partnershipLogo from '../assets/logo.jpg';
-import backgroundImage from '../assets/background.jpg';
+import backgroundImage from '../assets/background1.jpg';
 
 const HomePage = () => {
   return (
@@ -21,11 +21,11 @@ const HomePage = () => {
         </div>
 
         <div className="mt-12 sm:mt-16">
-          <h3 className="text-2xl sm:text-3xl font-bold mb-4 text-stroke">Prize Pool: 500,000 FCFA</h3>
+          <h3 className="text-4xl font-bold mb-4 text-stroke">Prize Pool: 500,000 FCFA</h3>
           <div className="space-y-2 text-xl sm:text-2xl md:text-3xl font-black text-stroke">
-            <p><span className="text-prize-red">1st Prize:</span> 300,000 FCFA</p>
-            <p><span className="text-prize-gold">2nd Prize:</span> 150,000 FCFA</p>
-            <p><span className="text-prize-silver">3rd Prize:</span> 50,000 FCFA</p>
+            <p><span className="text-prize-red ">1st Prize:</span> 300,000 FCFA</p>
+            <p><span className="text-prize-red">2nd Prize:</span> 150,000 FCFA</p>
+            <p><span className="text-prize-red">3rd Prize:</span> 50,000 FCFA</p>
           </div>
         </div>
       </div>
@@ -35,7 +35,7 @@ const HomePage = () => {
           <div className="bg-gray-100 rounded-md p-2"><FaUserShield className="text-gray-500 text-lg sm:text-xl" /></div>
           <div className="text-left mx-2 sm:mx-3">
             <h4 className="font-bold text-[10px] sm:text-xs uppercase">IN PARTNERSHIP WITH</h4>
-            <p className="text-[10px] sm:text-xs text-gray-500">Lorem ipsum dolor sit amet</p>
+            <p className="text-[10px] sm:text-xs text-gray-500">Royal City Snack Bar</p>
           </div>
           <img src={partnershipLogo} alt="Partner Logo" className="h-8 w-8 sm:h-10 sm:w-10 rounded-full" />
         </div>
