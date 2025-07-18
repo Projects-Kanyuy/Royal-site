@@ -22,6 +22,8 @@ module.exports = {
         'text-dark': '#333333',
         'text-gold': '#b98d4a',
         'prize-red': '#ff0000',
+        //whatsapp
+        'brand-whatsapp': '#25D366',
         
         // Leaderboard Specific
        'leaderboard-1': '#c94a4a', // A muted red for the 1st place card

@@ -11,6 +11,7 @@ import ProfilePage from './pages/ProfilePage';
 import ContactPage from './pages/ContactPage';
 import ArtistPublicPage from './pages/ArtistPublicPage';
 import UpdateProfilePage from './pages/UpdateProfilePage'; 
+import WhatsAppButton from './components/WhatsAppButton';
 
 function App() {
   const { auth } = useContext(AuthContext);
@@ -29,6 +30,7 @@ function App() {
         <Route path="/update-profile" element={<Layout theme="light" isLoggedIn={isLoggedIn}><UpdateProfilePage /></Layout>} />
         <Route path="/leaderboard" element={<Layout theme="light" isLoggedIn={isLoggedIn}><LeaderboardPage /></Layout>} />
       </Routes>
+      <WhatsAppButton />
     </Router>
   );
 }
