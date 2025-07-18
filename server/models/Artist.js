@@ -16,7 +16,7 @@ const artistSchema = new mongoose.Schema({
     url: { type: String, required: true },
   },
   votes: { type: Number, default: 0 },
-  isApproved: { type: Boolean, default: false }, // For admin approval
+  isApproved: { type: Boolean, default: true }, // For admin approval
 }, { timestamps: true });
 
 // Hash password before saving
