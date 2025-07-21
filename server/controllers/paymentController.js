@@ -1,5 +1,4 @@
 // server/controllers/paymentController.js
-import axios from 'axios';
 import Artist from '../models/Artist.js';
 
 // @desc    Verify a CamPay transaction and record vote
