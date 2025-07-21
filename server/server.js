@@ -6,6 +6,7 @@ import connectDB from './config/db.js';
 import artistRoutes from './routes/artistRoutes.js';
 import { notFound, errorHandler } from './middleware/errorMiddleware.js';
 import messageRoutes from './routes/messageRoutes.js';
+import paymentRoutes from './routes/paymentRoutes.js'; 
 
 dotenv.config();
 connectDB();
@@ -29,6 +30,7 @@ app.get('/', (req, res) => {
 
 app.use('/api/artists', artistRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // Error Handling Middleware (must be last)
 app.use(notFound);
