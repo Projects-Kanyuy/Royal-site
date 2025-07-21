@@ -1,10 +1,15 @@
-// src/pages/ArtistPublicPage.js
+// src/pages/ArtistDetailPage.js
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import apiClient from '../api/axios';
+import useCamPay from '../hooks/useCamPay'; // Re-use our custom hook
+import CamPayButton from '../components/CamPayButton'; // Re-use our payment button
 
 const ArtistPublicPage = () => {
-  const { id } = useParams();
+  // This hook loads the CamPay SDK script onto this page
+  useCamPay(); 
+  
+  const { id: artistId } = useParams(); // Get the artist's ID from the URL
   const [artist, setArtist] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -13,64 +18,58 @@ const ArtistPublicPage = () => {
   useEffect(() => {
     const fetchArtist = async () => {
       try {
-        const { data } = await apiClient.get(`/api/artists/${id}`);
+        const { data } = await apiClient.get(`/api/artists/${artistId}`);
         setArtist(data);
       } catch (err) {
-        setError('Could not find this artist.');
+        console.error("Failed to fetch artist:", err);
+        setError('Could not load artist data. The artist may not exist.');
       } finally {
         setLoading(false);
       }
     };
+
     fetchArtist();
-  }, [id]);
+  }, [artistId]);
 
-  const handleVote = async () => {
-    try {
-      await apiClient.post(`/api/artists/${artist._id}/vote`);
-      alert(`Thank you for your vote for ${artist.stageName}!`);
-    } catch (error) {
-      alert('Voting failed. Please try again.');
-    }
-  };
+  const handleIncrement = () => setVoteCount(prev => prev + 1);
+  const handleDecrement = () => setVoteCount(prev => (prev > 1 ? prev - 1 : 1));
 
-  // Main container with a dark background for the content area
+  const amountToPay = voteCount * 100;
+
+  if (loading) {
+    return <div className="text-center text-white p-10">Loading Artist...</div>;
+  }
+
+  if (error) {
+    return <div className="text-center text-red-400 p-10">{error}</div>;
+  }
+
   return (
-    <div className="bg-bg-dark min-h-screen flex items-center justify-center text-center">
-      <div className="container max-w-sm mx-auto p-4">
-        {loading && <p className="text-lg text-white">Loading Artist...</p>}
-        
-        {error && (
-          // --- CORRECTED ERROR STATE ---
-          <div className="flex flex-col items-center">
-            <p className="text-lg text-red-500 mb-6">{error}</p>
-            <Link to="/vote">
-              <button className="bg-brand-yellow-vote text-black font-bold py-3 px-8 rounded-md hover:brightness-90">
-                View All Artists
-              </button>
-            </Link>
-          </div>
-        )}
-
-        {!loading && !error && artist && (
-          // --- SUCCESS STATE (ARTIST FOUND) ---
-          <div className="bg-card-dark p-8 rounded-lg border-2 border-dashed border-border-dashed">
-            <h2 className="text-2xl font-bold text-brand-yellow-vote mb-6">Vote for this Artist!</h2>
+    <div className="bg-bg-light text-text-light min-h-screen flex items-center justify-center p-4">
+      <div className="w-full max-w-sm">
+        {artist && (
+          <div className="bg-card-dark p-8 rounded-lg text-center border-2 border-dashed border-border-dashed">
+            <h2 className="text-3xl font-bold text-brand-yellow-vote mb-6">Vote for this Artist!</h2>
             <img
               src={artist.profilePicture.url}
               alt={artist.stageName}
               className="w-40 h-40 rounded-full mx-auto object-cover mb-4 border-4 border-gray-500"
             />
-            <h3 className="text-3xl font-bold italic text-text-light mb-6">
+            <h3 className="text-2xl font-bold italic text-text-light mb-6">
               {artist.stageName}
             </h3>
-            <div className="flex justify-between items-center bg-white text-dark p-2 rounded-md my-4 font-bold">
-              <button onClick={() => setVoteCount(v => (v > 1 ? v - 1 : 1))} className="text-2xl px-3 hover:bg-gray-200">-</button>
-              <span>{voteCount * 100}fcfa</span>
-              <button onClick={() => setVoteCount(v => v + 1)} className="text-2xl px-3 hover:bg-gray-200">+</button>
+            <div className="flex justify-between items-center bg-white text-black p-2 rounded-md my-4 font-bold">
+              <button onClick={handleDecrement} className="text-2xl px-3 hover:bg-gray-200 rounded-md">-</button>
+              <span className="text-lg">{amountToPay} FCFA</span>
+              <button onClick={handleIncrement} className="text-2xl px-3 hover:bg-gray-200 rounded-md">+</button>
             </div>
-            <button onClick={handleVote} className="w-full bg-brand-yellow-vote text-black font-bold py-3 rounded-md hover:brightness-90">
-              VOTE NOW
-            </button>
+            
+            {/* The CamPayButton will now work correctly on this page */}
+            <CamPayButton
+              artist={artist}
+              amount={amountToPay}
+              onPaymentSuccess={() => console.log('Payment successful!')}
+            />
           </div>
         )}
       </div>

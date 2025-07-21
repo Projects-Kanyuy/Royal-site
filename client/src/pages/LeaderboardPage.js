@@ -33,7 +33,7 @@ const LeaderboardPage = () => {
   };
 
   return (
-    <div className="bg-bg-dark text-text-light min-h-screen">
+    <div className="bg-bg-light text-text-black min-h-screen">
       <div className="container mx-auto py-12 px-4">
         <div className="text-center mb-12">
           <h3 className="text-lg font-bold uppercase tracking-wider">ROCIMUC 2025 TOP ARTISTS</h3>

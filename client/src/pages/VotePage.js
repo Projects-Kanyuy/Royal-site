@@ -42,7 +42,7 @@ const ArtistVoteCard = ({ artist }) => {
       </div>
       
       <div>
-        <div className="flex justify-between items-center bg-white text-dark p-2 rounded-md my-4 font-bold">
+        <div className="flex justify-between items-center bg-white text-black p-2 rounded-md my-4 font-bold">
           <button onClick={handleDecrement} className="text-2xl px-3 hover:bg-gray-200 rounded-md transition-colors">-</button>
           <span className="text-lg">{amountToPay} FCFA</span>
           <button onClick={handleIncrement} className="text-2xl px-3 hover:bg-gray-200 rounded-md transition-colors">+</button>
@@ -89,11 +89,11 @@ const VotePage = () => {
   }, []); // Empty dependency array means this runs only once.
 
   return (
-    <div className="bg-bg-dark text-text-light min-h-screen">
+    <div className="bg-bg-light text-text-light min-h-screen">
       <div className="container mx-auto py-12 px-4">
         <div className="text-center mb-12">
           <h2 className="text-4xl font-extrabold text-brand-yellow-vote">Your Votes will Count</h2>
-          <p className="text-gray-400 mt-2">Select the number of votes and click "VOTE NOW" to pay.</p>
+          <p className="text-black mt-2">Select the number of votes and click "VOTE NOW" to pay.</p>
         </div>
         
         {/* Conditional rendering based on loading and error state */}
