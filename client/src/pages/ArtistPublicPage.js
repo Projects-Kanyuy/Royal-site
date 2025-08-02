@@ -1,18 +1,18 @@
 // src/pages/ArtistDetailPage.js
-import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import apiClient from '../api/axios';
-import useCamPay from '../hooks/useCamPay'; // Re-use our custom hook
-import CamPayButton from '../components/CamPayButton'; // Re-use our payment button
+import React, { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
+import apiClient from "../api/axios";
+import useCamPay from "../hooks/useCamPay"; // Re-use our custom hook
+import CamPayButton from "../components/CamPayButton"; // Re-use our payment button
 
 const ArtistPublicPage = () => {
   // This hook loads the CamPay SDK script onto this page
-  useCamPay(); 
-  
+  useCamPay();
+
   const { id: artistId } = useParams(); // Get the artist's ID from the URL
   const [artist, setArtist] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [voteCount, setVoteCount] = useState(1);
 
   useEffect(() => {
@@ -22,7 +22,7 @@ const ArtistPublicPage = () => {
         setArtist(data);
       } catch (err) {
         console.error("Failed to fetch artist:", err);
-        setError('Could not load artist data. The artist may not exist.');
+        setError("Could not load artist data. The artist may not exist.");
       } finally {
         setLoading(false);
       }
@@ -31,8 +31,9 @@ const ArtistPublicPage = () => {
     fetchArtist();
   }, [artistId]);
 
-  const handleIncrement = () => setVoteCount(prev => prev + 1);
-  const handleDecrement = () => setVoteCount(prev => (prev > 1 ? prev - 1 : 1));
+  const handleIncrement = () => setVoteCount((prev) => prev + 1);
+  const handleDecrement = () =>
+    setVoteCount((prev) => (prev > 1 ? prev - 1 : 1));
 
   const amountToPay = voteCount * 100;
 
@@ -49,7 +50,9 @@ const ArtistPublicPage = () => {
       <div className="w-full max-w-sm">
         {artist && (
           <div className="bg-card-dark p-8 rounded-lg text-center border-2 border-dashed border-border-dashed">
-            <h2 className="text-3xl font-bold text-brand-yellow-vote mb-6">Vote for this Artist!</h2>
+            <h2 className="text-3xl font-bold text-brand-yellow-vote mb-6">
+              Vote for this Artist!
+            </h2>
             <img
               src={artist.profilePicture.url}
               alt={artist.stageName}
@@ -59,16 +62,26 @@ const ArtistPublicPage = () => {
               {artist.stageName}
             </h3>
             <div className="flex justify-between items-center bg-white text-black p-2 rounded-md my-4 font-bold">
-              <button onClick={handleDecrement} className="text-2xl px-3 hover:bg-gray-200 rounded-md">-</button>
+              <button
+                onClick={handleDecrement}
+                className="text-2xl px-3 hover:bg-gray-200 rounded-md"
+              >
+                -
+              </button>
               <span className="text-lg">{amountToPay} FCFA</span>
-              <button onClick={handleIncrement} className="text-2xl px-3 hover:bg-gray-200 rounded-md">+</button>
+              <button
+                onClick={handleIncrement}
+                className="text-2xl px-3 hover:bg-gray-200 rounded-md"
+              >
+                +
+              </button>
             </div>
-            
+
             {/* The CamPayButton will now work correctly on this page */}
             <CamPayButton
               artist={artist}
               amount={amountToPay}
-              onPaymentSuccess={() => console.log('Payment successful!')}
+              onPaymentSuccess={() => console.log("Payment successful!")}
             />
           </div>
         )}
