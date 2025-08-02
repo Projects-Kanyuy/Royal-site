@@ -1,30 +1,30 @@
 // src/hooks/useCamPay.js
 import { useEffect } from 'react';
 
+// --- PRODUCTION: Replace with your LIVE CamPay App ID ---
+const LIVE_APP_ID = 'yBM06dFkbSFdoLY2MMBFgcu1AKGNM_dbRguFHfInAzgTidvAPWI65pZWU8PqbPnSs_jIgswu4d_OG8aBkDCFsw'; 
+
 const useCamPay = () => {
   useEffect(() => {
-    // Check if the script is already on the page
+    // Check if the script is already on the page to prevent duplicates
     if (document.getElementById('campay-sdk')) {
       return;
     }
 
     const script = document.createElement('script');
     script.id = 'campay-sdk';
-    // IMPORTANT: Replace the app-id with your REAL production App ID when you go live.
-    script.src = "https://demo.campay.net/sdk/js?app-id=xt3I9vaP_xAI1Qya1cKCbOqTy3GJZNB2Va-K0gP_TfPWEFW3CwwATHX1gYaQcAEanmQflUYQ7_sWdNDQJeruAA";
+    
+    // Use the live App ID in the script source URL
+    script.src = `https://www.campay.net/sdk/js?app-id=${LIVE_APP_ID}`;
     script.async = true;
 
     document.body.appendChild(script);
 
     return () => {
-      // Optional: cleanup script when the component unmounts
-      const existingScript = document.getElementById('campay-sdk');
-      if (existingScript) {
-        // In some cases, you might not want to remove it if other components use it.
-        // For this app, it's fine to leave it.
-      }
+      // Optional cleanup if needed, but it's safe to leave the script loaded
+      // for single-page applications.
     };
-  }, []); // The empty dependency array ensures this runs only once.
+  }, []); // Empty dependency array ensures this runs only once per app lifecycle.
 };
 
 export default useCamPay;
