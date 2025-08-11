@@ -12,36 +12,35 @@ export const verifyPayment = async (req, res) => {
     return res.status(400).json({ message: 'Missing payment details for verification.' });
   }
 
-  // The LIVE CamPay API URL for collections
-  const campayApiUrl = 'https://www.campay.net/api/collect/';
+  // --- CRITICAL FIX: Use the OFFICIAL transaction status endpoint ---
+  const campayApiUrl = 'https://www.campay.net/api/transaction/status/';
 
   const options = {
-    method: 'POST', // Use POST method as required
+    method: 'POST',
     headers: {
       'Authorization': `Token ${process.env.CAMPAY_API_TOKEN}`,
       'Content-Type': 'application/json',
     },
-    // --- CRITICAL FIX: Send ONLY the reference in the body ---
-    // The API documentation for a status check only requires the reference.
+    // The status endpoint requires the transaction reference in the body
     body: JSON.stringify({ reference: reference }),
   };
 
   try {
-    console.log(`Verifying payment for reference: ${reference} with POST.`);
+    console.log(`Verifying payment for reference: ${reference} using the OFFICIAL status endpoint.`);
 
     const campayResponse = await fetch(campayApiUrl, options);
 
     if (!campayResponse.ok) {
       const errorBody = await campayResponse.text();
-      console.error(`CamPay API responded with an error. Status: ${campayResponse.status}`);
-      console.error(`CamPay API response body: ${errorBody}`);
+      console.error(`CamPay Status API responded with an error. Status: ${campayResponse.status}`);
+      console.error(`CamPay Status API response body: ${errorBody}`);
       throw new Error(`CamPay verification failed with status ${campayResponse.status}.`);
     }
 
     const transaction = await campayResponse.json();
     console.log('CamPay Verification Response:', transaction);
     
-    // We still compare the amount received from the API with the amount the user intended to pay
+    // Convert both amounts to numbers for a reliable comparison
     const transactionAmount = parseFloat(transaction.amount);
     const paidAmount = parseFloat(amount);
 
