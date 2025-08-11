@@ -16,22 +16,21 @@ export const verifyPayment = async (req, res) => {
   const campayApiUrl = 'https://www.campay.net/api/collect/';
 
   const options = {
-    method: 'POST', // <-- CRITICAL FIX: Use POST as required by the CamPay API
+    method: 'POST', // Use POST method as required
     headers: {
       'Authorization': `Token ${process.env.CAMPAY_API_TOKEN}`,
       'Content-Type': 'application/json',
     },
-    // The reference is sent in the body of the POST request
+    // --- CRITICAL FIX: Send ONLY the reference in the body ---
+    // The API documentation for a status check only requires the reference.
     body: JSON.stringify({ reference: reference }),
   };
 
   try {
-    console.log(`Verifying payment for reference: ${reference} using POST method.`);
+    console.log(`Verifying payment for reference: ${reference} with POST.`);
 
-    // Making the API call using node-fetch
     const campayResponse = await fetch(campayApiUrl, options);
 
-    // Manually check if the HTTP response status is not OK
     if (!campayResponse.ok) {
       const errorBody = await campayResponse.text();
       console.error(`CamPay API responded with an error. Status: ${campayResponse.status}`);
@@ -42,6 +41,7 @@ export const verifyPayment = async (req, res) => {
     const transaction = await campayResponse.json();
     console.log('CamPay Verification Response:', transaction);
     
+    // We still compare the amount received from the API with the amount the user intended to pay
     const transactionAmount = parseFloat(transaction.amount);
     const paidAmount = parseFloat(amount);
 
