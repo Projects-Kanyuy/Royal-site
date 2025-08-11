@@ -1,67 +1,63 @@
-import React, { useEffect, useRef } from "react";
-import apiClient from "../api/axios";
+// src/components/CamPayButton.js
+import React, { useEffect } from 'react';
+import apiClient from '../api/axios';
 
 const CamPayButton = ({ artist, amount, onPaymentSuccess, onPaymentFail }) => {
   const payButtonId = `pay-button-${artist._id}`;
-  const hasInitialized = useRef(false);
 
+  // This useEffect hook will now run every time the 'amount' prop changes.
   useEffect(() => {
-    const initCamPay = () => {
-      if (!window.campay || hasInitialized.current) return;
-      hasInitialized.current = true;
+    // Check if the campay object is available on the window
+    if (window.campay) {
+      console.log(`Configuring CamPay for artist ${artist.stageName} with amount ${amount}`);
 
-      // 1) Configure the button
+      // Configure CamPay for this specific button with the CURRENT amount
       window.campay.options({
-        payButtonId,
+        payButtonId: payButtonId,
         description: `Vote for ${artist.stageName}`,
-        amount: amount.toString(),
+        amount: amount.toString(), // Ensure amount is always a string
         currency: "XAF",
         externalReference: "",
       });
 
-      // 2) Wire up callbacks
-      window.campay.onSuccess = (data) => {
+      // --- Success Callback ---
+      window.campay.onSuccess = function (data) {
         console.log("CamPay Success Data:", data);
-        verifyAndRecordVote(data.reference);
-        onPaymentSuccess?.(data);
+        // Call the backend to verify and record the vote
+        verifyAndRecordVote(data.reference, data.amount);
       };
 
-      window.campay.onFail = (data) => {
+      // --- Fail Callback ---
+      window.campay.onFail = function (data) {
         console.log("CamPay Fail Data:", data);
-        alert("Payment failed. Status: " + data.status);
-        onPaymentFail?.(data);
+        alert('Payment failed. Status: ' + data.status);
+        if (onPaymentFail) onPaymentFail(data);
       };
 
-      window.campay.onModalClose = (data) => {
-        console.log("CamPay Modal Closed:", data);
+      // --- Modal Close Callback ---
+      window.campay.onModalClose = function (data) {
+        console.log('CamPay Modal Closed:', data);
       };
-    };
-
-    // 1) If SDK is already loaded, init immediately:
-    if (window.campay) {
-      initCamPay();
-    } else {
-      // 2) Otherwise, wait for the <script> tag’s load event:
-      const script = document.getElementById("campay-sdk");
-      if (script) {
-        script.addEventListener("load", initCamPay);
-        // Cleanup listener on unmount
-        return () => script.removeEventListener("load", initCamPay);
-      }
     }
-  }, [artist, amount, payButtonId, onPaymentSuccess, onPaymentFail]);
+  }, [artist, amount, payButtonId, onPaymentSuccess, onPaymentFail]); // Dependency array includes 'amount'
 
-  const verifyAndRecordVote = async (reference) => {
+  const verifyAndRecordVote = async (reference, paidAmount) => {
     try {
-      const response = await apiClient.post("/api/payments/verify", {
-        reference,
+      console.log(`Verifying payment ref: ${reference} for artist: ${artist._id} with amount: ${paidAmount}`);
+      
+      const response = await apiClient.post('/api/payments/verify', {
+        reference: reference,
         artistId: artist._id,
-        amount,
+        // Send the amount that was ACTUALLY paid for backend validation
+        amount: parseFloat(paidAmount), 
       });
+
       alert(response.data.message);
+      if (onPaymentSuccess) onPaymentSuccess(response.data);
+
     } catch (error) {
       console.error("Verification failed:", error);
-      alert(error.response?.data?.message || "Payment verification failed.");
+      alert(error.response?.data?.message || 'Payment verification failed. Please contact support.');
     }
   };
 
