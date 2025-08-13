@@ -1,70 +1,70 @@
 // server/controllers/paymentController.js
-
-import fetch from 'node-fetch';
+import axios from 'axios';
 import Artist from '../models/Artist.js';
 
-// @desc    Verify a CamPay transaction and record vote
+// @desc    Verify a CamPay transaction and record a vote
 // @route   POST /api/payments/verify
 export const verifyPayment = async (req, res) => {
+  // Data from our frontend (this part is correct)
   const { reference, artistId, amount } = req.body;
 
   if (!reference || !artistId || !amount) {
-    return res.status(400).json({ message: 'Missing payment details for verification.' });
+    return res.status(400).json({ message: 'Missing payment details for verification' });
   }
 
-  // --- CRITICAL FIX: Use the OFFICIAL transaction status endpoint ---
-  const campayApiUrl = 'https://www.campay.net/api/transaction/status/';
-
-  const options = {
-    method: 'POST',
-    headers: {
-      'Authorization': `Token ${process.env.CAMPAY_API_TOKEN}`,
-      'Content-Type': 'application/json',
-    },
-    // The status endpoint requires the transaction reference in the body
-    body: JSON.stringify({ reference: reference }),
+  // --- THIS IS THE CRITICAL FIX ---
+  // Construct the URL exactly as your boss specified, with the reference in the path.
+  const campayApiUrl = `https://www.campay.net/api/transaction/${reference}/`;
+  
+  const headers = {
+    'Authorization': `Token ${process.env.CAMPAY_API_TOKEN}`, // Your secret token
+    'Content-Type': 'application/json',
   };
 
   try {
-    console.log(`Verifying payment for reference: ${reference} using the OFFICIAL status endpoint.`);
+    console.log(`Verifying payment by calling CamPay API: ${campayApiUrl}`);
 
-    const campayResponse = await fetch(campayApiUrl, options);
+    // --- CORRECTED AXIOS CALL ---
+    // Make a GET request to the new URL. We don't send any data in the body.
+    // The config object with headers is the second argument for a GET request.
+    const response = await axios.get(campayApiUrl, { headers });
 
-    if (!campayResponse.ok) {
-      const errorBody = await campayResponse.text();
-      console.error(`CamPay Status API responded with an error. Status: ${campayResponse.status}`);
-      console.error(`CamPay Status API response body: ${errorBody}`);
-      throw new Error(`CamPay verification failed with status ${campayResponse.status}.`);
-    }
-
-    const transaction = await campayResponse.json();
+    const transaction = response.data;
     console.log('CamPay Verification Response:', transaction);
-    
-    // Convert both amounts to numbers for a reliable comparison
-    const transactionAmount = parseFloat(transaction.amount);
-    const paidAmount = parseFloat(amount);
 
-    if (transaction.status === 'SUCCESSFUL' && transactionAmount === paidAmount) {
+    const transactionAmount = parseFloat(transaction.amount);
+
+    // Now, we check the response from CamPay and update our database
+    if (transaction.status === 'SUCCESSFUL' && transactionAmount === amount) {
       const artist = await Artist.findById(artistId);
       if (!artist) {
+        // This is an important safety check
         return res.status(404).json({ message: 'Artist not found. Vote cannot be recorded.' });
       }
 
-      const votesToAdd = Math.floor(paidAmount / 100);
+      const votesToAdd = Math.floor(amount / 100);
       artist.votes += votesToAdd;
       await artist.save();
       
-      console.log(`Success! Added ${votesToAdd} vote(s) to ${artist.stageName}. New total: ${artist.votes}`);
-      return res.status(200).json({ message: `Your vote for ${artist.stageName} has been successfully recorded!` });
+      console.log(`SUCCESS: Added ${votesToAdd} vote(s) to ${artist.stageName}`);
+      res.status(200).json({ message: `Your vote for ${artist.stageName} has been successfully recorded!` });
 
     } else {
-      console.log(`Verification failed. Status: ${transaction.status}, Amount Sent: ${paidAmount}, Amount Verified: ${transactionAmount}`);
-      return res.status(400).json({ message: 'Payment verification failed. Your vote was not recorded.' });
+      // This handles cases where the payment was not successful or amounts don't match
+      console.log(`Verification failed. Status: ${transaction.status}, Amount Sent: ${amount}, Amount Received: ${transactionAmount}`);
+      res.status(400).json({ message: 'Payment verification failed. Your vote was not recorded.' });
     }
 
   } catch (error) {
-    console.error('---!!! CRITICAL ERROR DURING PAYMENT VERIFICATION !!!---');
-    console.error(error.message);
-    return res.status(500).json({ message: 'A server error occurred during payment verification. Please contact support.' });
+    // This will log the exact error from CamPay's server to your backend console
+    console.error('---!!! CRITICAL ERROR DURING CAMPAY VERIFICATION !!!---');
+    if (error.response) {
+      console.error('CamPay responded with an error:');
+      console.error('Data:', error.response.data);
+      console.error('Status:', error.response.status);
+    } else {
+      console.error('Error Message:', error.message);
+    }
+    res.status(500).json({ message: 'A server error occurred during payment verification. Please contact support.' });
   }
 };
