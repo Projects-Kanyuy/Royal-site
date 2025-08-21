@@ -9,6 +9,7 @@ import {
   getArtistProfile,
   updateArtistProfile,
   getArtistById,
+  addManualVote
 } from '../controllers/artistController.js';
 import protect from '../middleware/authMiddleware.js';
 import multer from 'multer';
@@ -22,6 +23,7 @@ const upload = multer({ storage: storage });
 
 // POST /api/artists/register
 router.post('/register', upload.single('profilePicture'), registerArtist);
+router.post('/:id/manual-vote', addManualVote);
 
 // POST /api/artists/login
 router.post('/login', loginArtist);

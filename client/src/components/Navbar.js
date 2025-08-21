@@ -23,7 +23,6 @@ const Navbar = ({ theme = 'light', isLoggedIn = false }) => {
     <>
       <li><NavLink to="/" className={({ isActive }) => (isActive ? activeLinkStyle : hoverStyle)} onClick={() => setIsMenuOpen(false)}>HOME</NavLink></li>
       <li><NavLink to="/register" className={({ isActive }) => (isActive ? activeLinkStyle : hoverStyle)} onClick={() => setIsMenuOpen(false)}>REGISTER</NavLink></li>
-      <li><NavLink to="/vote" className={({ isActive }) => (isActive ? activeLinkStyle : hoverStyle)} onClick={() => setIsMenuOpen(false)}>VOTE</NavLink></li>
       <li><NavLink to="/leaderboard" className={({ isActive }) => (isActive ? activeLinkStyle : hoverStyle)} onClick={() => setIsMenuOpen(false)}>LEADERBOARD</NavLink></li>
       <li><NavLink to="/contact" className={({ isActive }) => (isActive ? activeLinkStyle : hoverStyle)} onClick={() => setIsMenuOpen(false)}>CONTACT</NavLink></li>
     </>

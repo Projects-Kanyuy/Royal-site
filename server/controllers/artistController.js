@@ -1,20 +1,41 @@
 // server/controllers/artistController.js
 import Artist from '../models/Artist.js';
 import generateToken from '../utils/generateToken.js';
-import cloudinary from '../config/cloudinaryConfig.js'; // <-- IMPORT THE NEW CONFIG FILE
+import cloudinary from 'cloudinary';
+import axios from 'axios';
+
+// --- Cloudinary Configuration ---
+if (process.env.CLOUDINARY_CLOUD_NAME) {
+  cloudinary.v2.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+    secure: true,
+  });
+  console.log('Cloudinary has been configured successfully.');
+} else {
+  console.error('!!! FATAL ERROR: CLOUDINARY CREDENTIALS ARE MISSING !!!');
+}
 
 /**
- * A helper function to upload a file buffer to Cloudinary.
- * This is more robust than using file paths.
+ * A helper function to upload a file buffer to Cloudinary with "fill" cropping.
  */
 const uploadFromBuffer = (buffer) => {
   return new Promise((resolve, reject) => {
-    if (!buffer) {
-      return reject(new Error('No file buffer was provided for upload.'));
-    }
+    if (!buffer) return reject(new Error('No file buffer provided.'));
     
-    const uploadStream = cloudinary.uploader.upload_stream(
-      { folder: 'rocimuc_artists', resource_type: 'auto' },
+    const uploadStream = cloudinary.v2.uploader.upload_stream(
+      {
+        // --- THIS IS THE KEY CHANGE ---
+        // This tells Cloudinary to resize the image to fit a 500x500px square.
+        // It keeps the original aspect ratio and crops the edges as needed to fill the space.
+        // 'gravity: auto' ensures the most interesting part of the image is kept.
+        folder: 'rocimuc_artists',
+        width: 500,
+        height: 500,
+        crop: 'fill', // Changed from 'thumb' to 'fill'
+        gravity: 'auto', // Changed from 'face' to 'auto'
+      },
       (error, result) => {
         if (error) return reject(error);
         resolve(result);
@@ -23,6 +44,7 @@ const uploadFromBuffer = (buffer) => {
     uploadStream.end(buffer);
   });
 };
+
 
 // @desc    Register a new artist
 // @route   POST /api/artists/register
@@ -167,4 +189,26 @@ export const getArtistById = async (req, res) => {
     res.status(404).json({ message: 'Artist not found or invalid ID' });
   }
 };
+// @desc    Add a single, free vote to an artist
+// @route   POST /api/artists/:id/manual-vote
+export const addManualVote = async (req, res) => {
+  try {
+    const artist = await Artist.findById(req.params.id);
 
+    if (artist) {
+      artist.votes += 1;
+      await artist.save();
+      
+      // Send back the new vote count so the frontend can update instantly
+      res.status(200).json({ 
+        message: 'Manual vote counted successfully!',
+        newVoteCount: artist.votes 
+      });
+    } else {
+      res.status(404).json({ message: 'Artist not found' });
+    }
+  } catch (error) {
+    console.error('ERROR PROCESSING MANUAL VOTE:', error);
+    res.status(500).json({ message: 'Server error while processing your vote' });
+  }
+};
