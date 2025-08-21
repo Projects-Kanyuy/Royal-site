@@ -42,12 +42,11 @@ export const verifyPayment = async (req, res) => {
         console.error(`[DB Error] Artist with ID ${artistId} not found after successful payment.`);
         return res.status(404).json({ message: 'Artist not found. Your vote could not be recorded.' });
       }
-
       const votesToAdd = Math.floor(frontendAmount / 100);
       artist.votes += votesToAdd;
       await artist.save();
       
-      console.log(`[DB Success] Added ${votesToAdd} vote(s) to ${artist.stageName}.`);
+      console.log(`[DB Success] Added ${votesToAdd} official vote(s) to ${artist.stageName}.`);
       res.status(200).json({ message: `Your vote for ${artist.stageName} has been successfully recorded!` });
 
     } else {

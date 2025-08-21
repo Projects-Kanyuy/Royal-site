@@ -119,15 +119,6 @@ export const getArtistsForVoting = async (req, res) => {
       res.status(500).json({ message: 'Could not retrieve artists' });
   }
 };
-export const getLeaderboard = async (req, res) => {
-  try {
-      const artists = await Artist.find({ isApproved: true }).sort({ votes: -1 }).limit(10);
-      res.json(artists);
-  } catch (error) {
-      console.error('ERROR FETCHING LEADERBOARD:', error);
-      res.status(500).json({ message: 'Could not retrieve leaderboard' });
-  }
-};
 export const voteForArtist = async (req, res) => {
   try {
     const artist = await Artist.findById(req.params.id);
@@ -191,18 +182,31 @@ export const getArtistById = async (req, res) => {
 };
 // @desc    Add a single, free vote to an artist
 // @route   POST /api/artists/:id/manual-vote
+export const getLeaderboard = async (req, res) => {
+    try {
+        // --- CRITICAL CHANGE: SORT BY OFFICIAL VOTES ONLY ---
+        const artists = await Artist.find({ isApproved: true }).sort({ votes: -1 }).limit(10);
+        res.json(artists);
+    } catch (error) {
+        console.error('ERROR FETCHING LEADERBOARD:', error);
+        res.status(500).json({ message: 'Could not retrieve leaderboard' });
+    }
+};
+
+// @desc    Add a single, free vote to an artist
+// @route   POST /api/artists/:id/manual-vote
 export const addManualVote = async (req, res) => {
   try {
     const artist = await Artist.findById(req.params.id);
-
     if (artist) {
-      artist.votes += 1;
+      // --- CRITICAL CHANGE: ONLY UPDATE HAND VOTES ---
+      artist.handVotes += 1;
       await artist.save();
       
-      // Send back the new vote count so the frontend can update instantly
+      // Send back both new vote counts so the frontend can update everything
       res.status(200).json({ 
-        message: 'Manual vote counted successfully!',
-        newVoteCount: artist.votes 
+        message: 'Hand vote counted successfully!',
+        newHandVoteCount: artist.handVotes
       });
     } else {
       res.status(404).json({ message: 'Artist not found' });
