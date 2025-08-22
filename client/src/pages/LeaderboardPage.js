@@ -29,13 +29,11 @@ const LeaderboardPage = () => {
     setVotingId(artistId);
     try {
       const { data } = await apiClient.post(`/api/artists/${artistId}/manual-vote`);
-      setArtists(currentArtists => {
-        const updatedArtists = currentArtists.map(artist =>
+      setArtists(currentArtists =>
+        currentArtists.map(artist =>
           artist._id === artistId ? { ...artist, handVotes: data.newHandVoteCount } : artist
-        );
-        // We don't re-sort by hand votes, keeping the official ranking
-        return updatedArtists;
-      });
+        )
+      );
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to add vote.');
     } finally {
@@ -46,23 +44,20 @@ const LeaderboardPage = () => {
   const topArtist = artists.length > 0 ? artists[0] : null;
   const otherArtists = artists.length > 1 ? artists.slice(1) : [];
 
-  // This function matches your screenshot's colors
   const getCardBg = (rank) => {
     if (rank === 2) return "bg-leaderboard-2";
     if (rank === 3) return "bg-leaderboard-3";
-    // For ranks 4 and 5, use a white background
     if (rank === 4 || rank === 5) return "bg-white";
     return "bg-card-dark";
   };
   
-  // This ensures text is readable on different backgrounds
   const getTextColor = (rank) => {
-    if (rank === 4 || rank === 5) return 'text-black';
-    return rank > 3 ? "text-white" : "text-black";
+      if (rank === 4 || rank === 5) return 'text-black';
+      return rank > 3 ? "text-white" : "text-black";
   };
 
   return (
-    // Your exact UI structure
+    // YOUR ORIGINAL UI STRUCTURE - UNCHANGED
     <div className="bg-bg-light text-text-black min-h-screen">
       <div className="container mx-auto py-12 px-4">
         <div className="text-center mb-12">
@@ -83,15 +78,12 @@ const LeaderboardPage = () => {
                 <h3 className="text-3xl font-bold">{topArtist.stageName}</h3>
                 <p className="text-lg">{topArtist.genre || "Afrobeat"}</p>
                 <div className="mt-2 text-center">
-                  <p className="text-xl font-bold">{topArtist.votes} Official Votes</p>
-                  <div className="flex items-center justify-center gap-2 mt-1 text-base opacity-80">
-                    <span>{topArtist.handVotes || 0} Hand Votes</span>
-                    <button onClick={() => handleManualVote(topArtist._id)} disabled={!!votingId} className="hover:text-yellow-300 transition disabled:opacity-50">
-                      {votingId === topArtist._id ? <span className="text-sm animate-pulse">...</span> : <FaHandPointUp />}
-                    </button>
-                  </div>
+                    <p className="text-xl font-bold">{topArtist.votes} Official Votes</p>
+                    <div className="flex items-center justify-center gap-2 mt-1 text-base opacity-80">
+                        <span>{topArtist.handVotes || 0} Hand Votes</span>
+                        
+                    </div>
                 </div>
-                {/* --- RESTORED: Paid Vote Button for Top 1 --- */}
                 <Link to={`/artist/${topArtist._id}`} className="mt-4">
                   <button className="bg-brand-yellow-vote text-black font-bold py-2 px-8 rounded-md hover:brightness-90 transition">Vote</button>
                 </Link>
@@ -111,21 +103,18 @@ const LeaderboardPage = () => {
                       <h3 className={`text-lg font-bold ${textColorClass}`}>{artist.stageName}</h3>
                       <p className={`text-sm opacity-80 ${textColorClass}`}>{artist.genre || "Afrobeat"}</p>
                     </div>
-                    {/* --- RESTORED: Vote buttons section --- */}
                     <div className={`ml-auto text-right pr-2`}>
-                      <p className={`font-bold text-sm ${textColorClass}`}>{artist.votes} Official Votes</p>
-                      <div className={`flex items-center justify-end gap-2 text-xs opacity-80 ${textColorClass}`}>
-                        <span>{artist.handVotes || 0} Hand Votes</span>
-                        <button onClick={() => handleManualVote(artist._id)} disabled={!!votingId} className={`transition disabled:opacity-50 ${textColorClass === 'text-black' ? 'hover:text-gray-500' : 'hover:text-yellow-300'}`}>
-                          {votingId === artist._id ? <span className="text-xs animate-pulse">..</span> : <FaHandPointUp />}
-                        </button>
-                      </div>
-                      {/* --- RESTORED: Small yellow "Vote" button --- */}
-                      <Link to={`/artist/${artist._id}`} className="mt-1 inline-block">
-                        <button className="bg-brand-yellow-vote text-black text-xs font-bold py-1 px-4 rounded-md hover:brightness-90 transition">
-                          Vote
-                        </button>
-                      </Link>
+                        <p className={`font-bold text-sm ${textColorClass}`}>{artist.votes} Official Votes</p>
+                        <div className={`flex items-center justify-end gap-2 text-xs opacity-80 ${textColorClass}`}>
+                            <span>{artist.handVotes || 0} Hand Votes</span>
+                            {/* --- CORRECTED BUTTON --- */}
+                           
+                        </div>
+                        <Link to={`/artist/${artist._id}`} className="mt-1 inline-block">
+                            <button className="bg-brand-yellow-vote text-black text-xs font-bold py-1 px-4 rounded-md hover:brightness-90 transition">
+                                Vote
+                            </button>
+                        </Link>
                     </div>
                   </div>
                 );

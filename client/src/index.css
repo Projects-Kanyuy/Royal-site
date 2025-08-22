@@ -1,5 +1,5 @@
-/* src/index.css (Corrected Version) */
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap');
+/* src/index.css (Complete and Corrected Code) */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700;900&family=Fredoka+One&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -7,24 +7,36 @@
 
 @layer base {
   body {
-    /* Use the theme() function to correctly access your custom config values */
     font-family: theme('fontFamily.sans');
     background-color: theme('colors.white');
-    color: theme('colors.dark'); /* This is the main fix */
+    color: theme('colors.dark');
   }
   main {
-    @apply pt-20; /* pt-20 is a standard Tailwind utility, so @apply is fine here */
+    @apply pt-20;
   }
 }
 
 @layer components {
+  /* Your existing container class */
   .container {
     @apply max-w-7xl mx-auto px-4;
   }
+
+  /* --- THIS IS THE NEW, CORRECTED CLASS WE ARE ADDING --- */
+  .profile-avatar {
+    @apply rounded-full border-4; /* Keeps the circle shape and border */
+    
+    /* This is the crucial fix to show the whole image */
+    @apply object-contain; 
+    
+    /* This fills the empty space in the circle with a neutral color */
+    @apply bg-black; 
+  }
 }
+
 @layer utilities {
+  /* Your existing text-stroke class */
   .text-stroke {
-    /* This creates a 1px black outline by layering shadows around the text */
     text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
   }
 }

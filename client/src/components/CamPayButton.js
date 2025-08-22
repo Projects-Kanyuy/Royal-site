@@ -1,59 +1,71 @@
 // src/components/CamPayButton.js
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import apiClient from '../api/axios';
 
 const CamPayButton = ({ artist, amount, onPaymentSuccess, onPaymentFail }) => {
   const payButtonId = `pay-button-${artist._id}`;
+  // Use a ref to prevent re-initializing the callbacks on every render
+  const callbacksInitialized = useRef(false);
 
-  // This useEffect hook will now run every time the 'amount' prop changes.
+  // This useEffect now ONLY runs when the amount changes, which is more efficient.
   useEffect(() => {
-    // Check if the campay object is available on the window
     if (window.campay) {
-      console.log(`Configuring CamPay for artist ${artist.stageName} with amount ${amount}`);
-
-      // Configure CamPay for this specific button with the CURRENT amount
+      // Configure CamPay options with the latest amount
       window.campay.options({
         payButtonId: payButtonId,
         description: `Vote for ${artist.stageName}`,
-        amount: amount.toString(), // Ensure amount is always a string
+        amount: amount.toString(),
         currency: "XAF",
-        externalReference: "",
+        externalReference: "", // Optional: generate a unique ID here
       });
+    }
+  }, [amount, artist.stageName, payButtonId]); // Only depends on what's needed for .options()
 
-      // --- Success Callback ---
+  // This useEffect sets up the global callbacks ONCE and never runs again.
+  useEffect(() => {
+    if (window.campay && !callbacksInitialized.current) {
+      callbacksInitialized.current = true; // Mark as initialized
+
       window.campay.onSuccess = function (data) {
         console.log("CamPay Success Data:", data);
-        // Call the backend to verify and record the vote
-        verifyAndRecordVote(data.reference, data.amount);
+        // Call the verification function, which now handles the WhatsApp redirect
+        verifyAndOpenWhatsApp(data.reference);
       };
 
-      // --- Fail Callback ---
       window.campay.onFail = function (data) {
         console.log("CamPay Fail Data:", data);
         alert('Payment failed. Status: ' + data.status);
         if (onPaymentFail) onPaymentFail(data);
       };
 
-      // --- Modal Close Callback ---
       window.campay.onModalClose = function (data) {
         console.log('CamPay Modal Closed:', data);
       };
     }
-  }, [artist, amount, payButtonId, onPaymentSuccess, onPaymentFail]); // Dependency array includes 'amount'
+  }, [onPaymentFail]); // Only depends on onPaymentFail if it's used
 
-  const verifyAndRecordVote = async (reference, paidAmount) => {
+  const verifyAndOpenWhatsApp = async (reference) => {
     try {
-      console.log(`Verifying payment ref: ${reference} for artist: ${artist._id} with amount: ${paidAmount}`);
+      console.log(`Verifying payment ref: ${reference} for artist: ${artist._id} with amount: ${amount}`);
       
       const response = await apiClient.post('/api/payments/verify', {
         reference: reference,
         artistId: artist._id,
-        // Send the amount that was ACTUALLY paid for backend validation
-        amount: parseFloat(paidAmount), 
+        // Send the amount the user intended to pay for secure validation
+        amount: amount, 
       });
 
+      // Step 1: Show the success message from your server
       alert(response.data.message);
-      if (onPaymentSuccess) onPaymentSuccess(response.data);
+
+      if (onPaymentSuccess) {
+        onPaymentSuccess(response.data);
+      }
+      
+      // --- STEP 2: OPEN THE WHATSAPP LINK IN A NEW TAB ---
+      // This code will only execute if the verification above was successful.
+      const whatsappLink = "https://chat.whatsapp.com/G7vK3oO7dHb0Rj8e7VOHbr?mode=ac_t";
+      window.open(whatsappLink, '_blank');
 
     } catch (error) {
       console.error("Verification failed:", error);
