@@ -1,13 +1,15 @@
 // src/pages/admin/AdminLoginPage.js
-import React, { useState } from 'react';
-import axios from 'axios';
+import React, { useState, useContext } from 'react';
+import apiClient from '../../api/axios';
 import { useNavigate } from 'react-router-dom';
+import AuthContext from '../../context/AuthContext';
 
 const AdminLoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const { login } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -15,30 +17,35 @@ const AdminLoginPage = () => {
     setLoading(true);
     setError('');
     try {
-      const { data } = await axios.post('/api/admin/login', { email, password });
-      localStorage.setItem('adminToken', data.token);
-      navigate('/admin/dashboard');
+      const { data } = await apiClient.post('/api/users/login', { email, password });
+      if (data && data.isAdmin) {
+        login(data); // Save admin info to global state/localStorage
+        navigate('/admin/dashboard');
+      } else {
+        setError('Access Denied. You are not an authorized admin.');
+      }
     } catch (err) {
-      setError(err.response?.data?.message || 'Admin login failed.');
+      setError(err.response?.data?.message || 'Invalid email or password');
+    } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="bg-bg-light min-h-screen flex items-center justify-center">
-      <div className="max-w-md w-full bg-white p-8 rounded-lg shadow-lg">
-        <h1 className="text-3xl font-bold text-center mb-6">Admin Login</h1>
+    <div className="container mx-auto py-20 flex justify-center">
+      <div className="w-full max-w-md bg-white p-8 rounded-lg shadow-lg">
+        <h2 className="text-3xl font-bold text-center mb-6">Admin Panel Login</h2>
         {error && <p className="text-red-500 text-center mb-4">{error}</p>}
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block font-medium">Email</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full mt-1 p-3 border rounded-md" />
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} required className="w-full p-3 border border-gray-300 rounded-md mt-1" />
           </div>
           <div>
             <label className="block font-medium">Password</label>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className="w-full mt-1 p-3 border rounded-md" />
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} required className="w-full p-3 border border-gray-300 rounded-md mt-1" />
           </div>
-          <button type="submit" disabled={loading} className="w-full bg-brand-gold text-white font-bold py-3 rounded-md hover:bg-brand-gold-light disabled:bg-gray-400">
+          <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white p-3 rounded-md font-bold hover:bg-blue-700 disabled:bg-gray-400">
             {loading ? 'Logging in...' : 'Login'}
           </button>
         </form>

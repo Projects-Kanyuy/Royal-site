@@ -5,13 +5,13 @@ import AuthContext from './context/AuthContext';
 import Layout from './components/Layout';
 import HomePage from './pages/HomePage';
 import RegisterPage from './pages/RegisterPage';
-import VotePage from './pages/VotePage';
 import LeaderboardPage from './pages/LeaderboardPage';
 import ProfilePage from './pages/ProfilePage';
 import ContactPage from './pages/ContactPage';
 import ArtistPublicPage from './pages/ArtistPublicPage';
-import UpdateProfilePage from './pages/UpdateProfilePage'; 
-import WhatsAppButton from './components/WhatsAppButton';
+import AdminLoginPage from './pages/admin/AdminLoginPage';
+import AdminDashboardPage from './pages/admin/AdminDashboardPage';
+import AdminRoute from './components/AdminRoute';
 
 function App() {
   const { auth } = useContext(AuthContext);
@@ -20,17 +20,22 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* Light Theme Routes */}
-         <Route path="/artist/:id" element={<Layout navVariant="limited" theme="light" isLoggedIn={false}><ArtistPublicPage /></Layout>} />
+        {/* --- Public User Routes --- */}
         <Route path="/" element={<Layout theme="light" isLoggedIn={isLoggedIn}><HomePage /></Layout>} />
         <Route path="/register" element={<Layout theme="light" isLoggedIn={isLoggedIn}><RegisterPage /></Layout>} />
-        <Route path="/contact" element={<Layout theme="light" isLoggedIn={isLoggedIn}><ContactPage /></Layout>} />
-        <Route path="/profile" element={<Layout theme="light" isLoggedIn={isLoggedIn}><ProfilePage /></Layout>} />
-        <Route path="/vote" element={<Layout theme="light" isLoggedIn={isLoggedIn}><VotePage /></Layout>} />
-        <Route path="/update-profile" element={<Layout theme="light" isLoggedIn={isLoggedIn}><UpdateProfilePage /></Layout>} />
         <Route path="/leaderboard" element={<Layout theme="light" isLoggedIn={isLoggedIn}><LeaderboardPage /></Layout>} />
+        <Route path="/profile" element={<Layout theme="light" isLoggedIn={isLoggedIn}><ProfilePage /></Layout>} />
+        <Route path="/contact" element={<Layout theme="light" isLoggedIn={isLoggedIn}><ContactPage /></Layout>} />
+        <Route path="/artist/:id" element={<Layout theme="light" isLoggedIn={isLoggedIn}><ArtistPublicPage /></Layout>} />
+        
+        {/* --- Admin Routes --- */}
+        <Route path="/admin-login" element={<Layout theme="light"><AdminLoginPage /></Layout>} />
+        
+        {/* This special route protects all admin pages inside it */}
+        <Route element={<AdminRoute />}>
+          <Route path="/admin/dashboard" element={<Layout theme="light"><AdminDashboardPage /></Layout>} />
+        </Route>
       </Routes>
-      <WhatsAppButton />
     </Router>
   );
 }

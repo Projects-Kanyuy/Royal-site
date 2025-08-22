@@ -1,21 +1,16 @@
 // server/routes/adminRoutes.js
 import express from 'express';
-import {
-  loginAdmin,
-  getPendingArtists,
-  approveArtist,
-  rejectArtist,
-} from '../controllers/adminController.js';
-import adminProtect from '../middleware/adminAuthMiddleware.js';
-
 const router = express.Router();
+import { getAllArtistsForAdmin, addHandVotesToArtist } from '../controllers/adminController.js';
+import protect from '../middleware/authMiddleware.js';
+import { admin } from '../middleware/adminMiddleware.js';
 
-// Public route for admin login
-router.post('/login', loginAdmin);
+// All routes in this file are protected and require the user to be an admin.
 
-// Protected routes - only a logged-in admin can access these
-router.get('/artists/pending', adminProtect, getPendingArtists);
-router.put('/artists/:id/approve', adminProtect, approveArtist);
-router.delete('/artists/:id', adminProtect, rejectArtist);
+// GET /api/admin/artists -> Get a list of all artists
+router.get('/artists', protect, admin, getAllArtistsForAdmin);
+
+// PUT /api/admin/artists/:id/add-hand-votes -> Add hand votes to a specific artist
+router.put('/artists/:id/add-hand-votes', protect, admin, addHandVotesToArtist);
 
 export default router;

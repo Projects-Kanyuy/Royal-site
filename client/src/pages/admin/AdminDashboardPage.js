@@ -1,96 +1,101 @@
 // src/pages/admin/AdminDashboardPage.js
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect, useContext } from 'react';
+import apiClient from '../../api/axios';
+import AuthContext from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
 const AdminDashboardPage = () => {
-  const [pendingArtists, setPendingArtists] = useState([]);
+  const [artists, setArtists] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const { auth, logout } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  const fetchPendingArtists = async () => {
-    try {
-      const token = localStorage.getItem('adminToken');
-      if (!token) {
-        navigate('/admin/login');
+  useEffect(() => {
+    const fetchArtists = async () => {
+      try {
+        const config = { headers: { Authorization: `Bearer ${auth.token}` } };
+        const { data } = await apiClient.get('/api/admin/artists', config);
+        setArtists(data);
+      } catch (err) {
+        setError('Failed to fetch artists. You may not be authorized.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (auth?.token) { fetchArtists(); }
+  }, [auth]);
+  
+  const handleAddHandVotes = async (artistId) => {
+    const votesString = prompt(`Enter the number of Hand Votes (cash votes) to add:`, "0");
+    if (votesString) {
+      const votesToAdd = Number(votesString);
+      if (isNaN(votesToAdd) || votesToAdd <= 0) {
+        alert("Please enter a valid positive number.");
         return;
       }
-      const config = { headers: { Authorization: `Bearer ${token}` } };
-      const { data } = await axios.get('/api/admin/artists/pending', config);
-      setPendingArtists(data);
-    } catch (err) {
-      setError('Failed to fetch pending artists.');
-      if (err.response?.status === 401) navigate('/admin/login');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchPendingArtists();
-  }, []);
-
-  const handleApprove = async (artistId) => {
-    try {
-      const token = localStorage.getItem('adminToken');
-      const config = { headers: { Authorization: `Bearer ${token}` } };
-      await axios.put(`/api/admin/artists/${artistId}/approve`, {}, config);
-      setPendingArtists(prev => prev.filter(artist => artist._id !== artistId));
-    } catch (err) {
-      alert('Failed to approve artist.');
-    }
-  };
-
-  const handleReject = async (artistId) => {
-    if (window.confirm('Are you sure you want to reject and delete this artist?')) {
+      
       try {
-        const token = localStorage.getItem('adminToken');
-        const config = { headers: { Authorization: `Bearer ${token}` } };
-        await axios.delete(`/api/admin/artists/${artistId}`, config);
-        setPendingArtists(prev => prev.filter(artist => artist._id !== artistId));
-      } catch (err) {
-        alert('Failed to reject artist.');
+        const config = { headers: { Authorization: `Bearer ${auth.token}` } };
+        const { data: updatedArtist } = await apiClient.put(`/api/admin/artists/${artistId}/add-hand-votes`, { votesToAdd }, config);
+        setArtists(artists.map(a => a._id === artistId ? updatedArtist : a));
+        alert('Hand votes added successfully!');
+      } catch (err) { 
+        alert(err.response?.data?.message || 'Failed to add votes.'); 
       }
     }
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('adminToken');
-    navigate('/admin/login');
+    logout();
+    navigate('/');
   };
+  
+  if (loading) return <p className="text-center p-8">Loading Artists...</p>;
+  if (error) return <p className="text-center p-8 text-red-500">{error}</p>;
 
   return (
-    <div className="bg-gray-100 min-h-screen p-8">
-      <div className="container mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold">Admin Dashboard</h1>
-          <button onClick={handleLogout} className="bg-red-500 text-white font-bold py-2 px-4 rounded-md hover:bg-red-600">Logout</button>
-        </div>
-        <h2 className="text-2xl font-semibold mb-4">Pending Artist Approvals</h2>
-        {loading && <p>Loading...</p>}
-        {error && <p className="text-red-500">{error}</p>}
-        <div className="space-y-4">
-          {pendingArtists.length > 0 ? (
-            pendingArtists.map(artist => (
-              <div key={artist._id} className="bg-white p-4 rounded-lg shadow-md flex flex-col md:flex-row md:items-center justify-between">
-                <div className="flex items-center mb-4 md:mb-0">
-                  <img src={artist.profilePicture.url} alt={artist.stageName} className="w-16 h-16 rounded-full object-cover mr-4" />
-                  <div>
-                    <p className="font-bold text-lg">{artist.stageName} <span className="text-gray-500 font-normal">({artist.name})</span></p>
-                    <p className="text-sm text-gray-600">{artist.email}</p>
-                    <p className="text-sm mt-1">{artist.bio}</p>
-                  </div>
-                </div>
-                <div className="flex gap-4">
-                  <button onClick={() => handleApprove(artist._id)} className="bg-green-500 text-white font-bold py-2 px-4 rounded-md hover:bg-green-600">Approve</button>
-                  <button onClick={() => handleReject(artist._id)} className="bg-gray-500 text-white font-bold py-2 px-4 rounded-md hover:bg-gray-600">Reject</button>
-                </div>
-              </div>
-            ))
-          ) : (
-            !loading && <p>No pending artists to approve.</p>
-          )}
+    <div className="container mx-auto py-8 px-4">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Admin Panel</h1>
+        <button onClick={handleLogout} className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600">Logout</button>
+      </div>
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        <h2 className="text-xl font-semibold mb-4">Manage Hand (Cash) Votes</h2>
+        <div className="overflow-x-auto">
+          <table className="min-w-full">
+            <thead className="bg-gray-100">
+              <tr>
+                <th className="text-left py-2 px-3">Artist</th>
+                <th className="py-2 px-3">Official Votes</th>
+                <th className="py-2 px-3">Hand Votes</th>
+                <th className="py-2 px-3">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {artists.map(artist => (
+                <tr key={artist._id} className="border-b hover:bg-gray-50">
+                  <td className="py-3 px-3">
+                    <div className="flex items-center gap-3">
+                      <img src={artist.profilePicture.url} alt={artist.stageName} className="w-12 h-12 rounded-full object-cover" />
+                      <div>
+                        <div className="font-bold">{artist.stageName}</div>
+                        <div className="text-sm text-gray-500">{artist.name}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="py-3 px-3 text-center font-semibold">{artist.votes}</td>
+                  <td className="py-3 px-3 text-center font-semibold">{artist.handVotes}</td>
+                  <td className="py-3 px-3 text-center">
+                    <button onClick={() => handleAddHandVotes(artist._id)} className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors">
+                      Add Hand Votes
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
