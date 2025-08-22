@@ -8,7 +8,7 @@ import RegisterPage from './pages/RegisterPage';
 import LeaderboardPage from './pages/LeaderboardPage';
 import ProfilePage from './pages/ProfilePage';
 import ContactPage from './pages/ContactPage';
-import ArtistPublicPage from './pages/ArtistPublicPage';
+import ArtistPublicPage from './pages/ArtistPublicPage'; // This matches your file name
 import AdminLoginPage from './pages/admin/AdminLoginPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import AdminRoute from './components/AdminRoute';
