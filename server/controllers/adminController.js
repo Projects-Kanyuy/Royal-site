@@ -1,11 +1,10 @@
 // server/controllers/adminController.js
 import Artist from '../models/Artist.js';
 
-// @desc    Get all artists for the admin panel (sorted by name)
-// @route   GET /api/admin/artists
+// @desc    Get all artists for the admin panel
 export const getAllArtistsForAdmin = async (req, res) => {
   try {
-    const artists = await Artist.find({}).sort({ stageName: 1 }); // Sort alphabetically by stage name
+    const artists = await Artist.find({}).sort({ stageName: 1 });
     res.json(artists);
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch artists." });
@@ -24,13 +23,16 @@ export const addHandVotesToArtist = async (req, res) => {
   try {
     const artist = await Artist.findById(req.params.id);
     if (artist) {
+      // --- THE CRITICAL FIX ---
+      // This correctly adds the number from the request body.
       artist.handVotes = (artist.handVotes || 0) + Number(votesToAdd);
       const updatedArtist = await artist.save();
-      res.json(updatedArtist); // Send back the full updated artist object
+      res.json(updatedArtist);
     } else {
       res.status(404).json({ message: 'Artist not found' });
     }
   } catch (error) {
+    console.error("Error adding hand votes:", error);
     res.status(500).json({ message: "Failed to add hand votes." });
   }
 };

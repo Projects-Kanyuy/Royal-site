@@ -10,18 +10,31 @@ const LeaderboardPage = () => {
   const [error, setError] = useState("");
   const [votingId, setVotingId] = useState(null);
 
+  const fetchLeaderboard = async () => {
+    try {
+      setLoading(true);
+      const { data } = await apiClient.get("/api/artists/leaderboard");
+      setArtists(data);
+    } catch (err) {
+      setError("Could not load the leaderboard.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchLeaderboard = async () => {
-      try {
-        const { data } = await apiClient.get("/api/artists/leaderboard");
-        setArtists(data);
-      } catch (err) {
-        setError("Could not load the leaderboard.");
-      } finally {
-        setLoading(false);
+    fetchLeaderboard(); // Fetch on initial load
+    
+    // Auto-refresh when tab becomes visible
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchLeaderboard();
       }
     };
-    fetchLeaderboard();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   const handleManualVote = async (artistId) => {
@@ -29,11 +42,12 @@ const LeaderboardPage = () => {
     setVotingId(artistId);
     try {
       const { data } = await apiClient.post(`/api/artists/${artistId}/manual-vote`);
-      setArtists(currentArtists =>
-        currentArtists.map(artist =>
+      setArtists(currentArtists => {
+        const updatedArtists = currentArtists.map(artist =>
           artist._id === artistId ? { ...artist, handVotes: data.newHandVoteCount } : artist
-        )
-      );
+        );
+        return updatedArtists;
+      });
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to add vote.');
     } finally {
@@ -57,20 +71,18 @@ const LeaderboardPage = () => {
   };
 
   return (
-    // YOUR ORIGINAL UI STRUCTURE - UNCHANGED
     <div className="bg-bg-light text-text-black min-h-screen">
       <div className="container mx-auto py-12 px-4">
         <div className="text-center mb-12">
           <h3 className="text-lg font-bold uppercase tracking-wider">ROCIMUC 2025 TOP ARTISTS</h3>
           <h1 className="font-display text-7xl text-brand-gold uppercase">Leaderboard</h1>
         </div>
-
+        
         {loading && <p className="text-center text-lg">Loading Leaderboard...</p>}
         {error && <p className="text-center text-lg text-red-400">{error}</p>}
 
         {!loading && !error && topArtist && (
           <div className="flex flex-col md:flex-row gap-8 max-w-4xl mx-auto">
-            {/* --- Left Column: #1 Artist (Your UI) --- */}
             <div className="flex-1">
               <div className="bg-leaderboard-1 text-white p-6 rounded-lg shadow-lg h-full flex flex-col items-center justify-center text-center relative">
                 <span className="absolute top-4 left-4 bg-black bg-opacity-20 px-3 py-1 text-xs rounded-full font-bold">TOP 1</span>
@@ -81,7 +93,10 @@ const LeaderboardPage = () => {
                     <p className="text-xl font-bold">{topArtist.votes} Official Votes</p>
                     <div className="flex items-center justify-center gap-2 mt-1 text-base opacity-80">
                         <span>{topArtist.handVotes || 0} Hand Votes</span>
-                        
+                        {/* --- ADDED BACK THE HAND VOTE BUTTON --- */}
+                        <button onClick={() => handleManualVote(topArtist._id)} disabled={!!votingId} className="hover:text-yellow-300 transition disabled:opacity-50">
+                            {votingId === topArtist._id ? <span className="text-sm animate-pulse">...</span> : <FaHandPointUp />}
+                        </button>
                     </div>
                 </div>
                 <Link to={`/artist/${topArtist._id}`} className="mt-4">
@@ -90,7 +105,6 @@ const LeaderboardPage = () => {
               </div>
             </div>
 
-            {/* --- Right Column: #2, #3, #4... (Your UI) --- */}
             <div className="flex-1 flex flex-col gap-4">
               {otherArtists.map((artist, index) => {
                 const rank = index + 2;
@@ -107,8 +121,10 @@ const LeaderboardPage = () => {
                         <p className={`font-bold text-sm ${textColorClass}`}>{artist.votes} Official Votes</p>
                         <div className={`flex items-center justify-end gap-2 text-xs opacity-80 ${textColorClass}`}>
                             <span>{artist.handVotes || 0} Hand Votes</span>
-                            {/* --- CORRECTED BUTTON --- */}
-                           
+                            {/* --- ADDED BACK THE HAND VOTE BUTTON --- */}
+                            <button onClick={() => handleManualVote(artist._id)} disabled={!!votingId} className={`transition disabled:opacity-50 ${textColorClass === 'text-black' ? 'hover:text-gray-500' : 'hover:text-yellow-300'}`}>
+                               {votingId === artist._id ? <span className="text-xs animate-pulse">..</span> : <FaHandPointUp />}
+                            </button>
                         </div>
                         <Link to={`/artist/${artist._id}`} className="mt-1 inline-block">
                             <button className="bg-brand-yellow-vote text-black text-xs font-bold py-1 px-4 rounded-md hover:brightness-90 transition">
@@ -126,5 +142,4 @@ const LeaderboardPage = () => {
     </div>
   );
 };
-
 export default LeaderboardPage;
