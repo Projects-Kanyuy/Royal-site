@@ -1,30 +1,35 @@
 // src/hooks/useCamPay.js
 import { useEffect } from 'react';
 
-// --- PRODUCTION: Replace with your LIVE CamPay App ID ---
-const LIVE_APP_ID = 'yBM06dFkbSFdoLY2MMBFgcu1AKGNM_dbRguFHfInAzgTidvAPWI65pZWU8PqbPnSs_jIgswu4d_OG8aBkDCFsw'; 
+// Securely read the App ID from the environment variable
+const CAMPAY_APP_ID = process.env.REACT_APP_CAMPAY_APP_ID;
 
 const useCamPay = () => {
   useEffect(() => {
-    // Check if the script is already on the page to prevent duplicates
+    // Check if the script is already loaded
     if (document.getElementById('campay-sdk')) {
+      return;
+    }
+
+    // Add a check to ensure the App ID is present
+    if (!CAMPAY_APP_ID) {
+      console.error("FATAL ERROR: REACT_APP_CAMPAY_APP_ID is not defined in your .env file.");
       return;
     }
 
     const script = document.createElement('script');
     script.id = 'campay-sdk';
     
-    // Use the live App ID in the script source URL
-    script.src = `https://www.campay.net/sdk/js?app-id=${LIVE_APP_ID}`;
+    // Use the live App ID from the environment variable in the script source URL
+    script.src = `https://www.campay.net/sdk/js?app-id=${CAMPAY_APP_ID}`;
     script.async = true;
 
     document.body.appendChild(script);
 
     return () => {
-      // Optional cleanup if needed, but it's safe to leave the script loaded
-      // for single-page applications.
+      // Optional cleanup
     };
-  }, []); // Empty dependency array ensures this runs only once per app lifecycle.
+  }, []); // Empty dependency array ensures this runs only once.
 };
 
 export default useCamPay;
