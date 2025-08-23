@@ -1,7 +1,8 @@
-// /server/middleware/authMiddleware.js
+// server/middlewares/authMiddleware.js
 import jwt from 'jsonwebtoken';
-import Artist from '../models/Artist.js';
+import User from '../models/User.js';
 
+// This is the universal protection middleware
 const protect = async (req, res, next) => {
   let token;
 
@@ -10,11 +11,18 @@ const protect = async (req, res, next) => {
       token = req.headers.authorization.split(' ')[1];
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       
-      // Attach artist to the request, excluding password
-      req.artist = await Artist.findById(decoded.id).select('-password');
-      next();
+      // --- THE FIX ---
+      // We must attach the found user to 'req.user', NOT 'req.artist'.
+      // This ensures all subsequent middleware can find the user correctly.
+      req.user = await User.findById(decoded.id).select('-password');
+
+      if (!req.user) {
+        return res.status(401).json({ message: 'Not authorized, user not found' });
+      }
+
+      next(); // Proceed to the next step (like the admin check)
     } catch (error) {
-      console.error(error);
+      console.error('Token verification failed:', error);
       res.status(401).json({ message: 'Not authorized, token failed' });
     }
   }
