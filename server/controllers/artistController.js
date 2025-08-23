@@ -186,13 +186,13 @@ export const getArtistsForVoting = async (req, res) => {
 // @route   GET /api/artists/leaderboard
 export const getLeaderboard = async (req, res) => {
     try {
-        // --- THE CRITICAL FIX ---
-        // We must explicitly select all the fields we need, including 'handVotes'.
-        // Mongoose will automatically include _id.
+        // --- THE DEFINITIVE FIX FOR MISSING HAND VOTES ON LEADERBOARD ---
+        // We explicitly name every field needed to ensure it is returned,
+        // solving the issue of Mongoose dropping the 'handVotes' field.
         const artists = await Artist.find({ isApproved: true })
             .sort({ votes: -1 })
             .limit(10)
-            .select('stageName genre profilePicture votes handVotes'); // <-- THIS LINE IS FIXED
+            .select('stageName genre profilePicture votes handVotes'); // <-- HAND VOTES GUARANTEED
             
         res.json(artists);
     } catch (error) {
@@ -200,6 +200,7 @@ export const getLeaderboard = async (req, res) => {
         res.status(500).json({ message: 'Could not retrieve leaderboard' });
     }
 };
+
 
 
 // @desc    Add a single, free vote to an artist

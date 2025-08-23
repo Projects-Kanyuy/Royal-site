@@ -27,7 +27,7 @@ const AdminDashboardPage = () => {
   }, [auth]);
   
   const handleAddHandVotes = async (artistId) => {
-    const votesString = prompt(`Enter the number of Hand Votes (cash votes) to add:`, "0");
+    const votesString = prompt(`Enter the number of Hand Votes (cash votes) to add:`, "1");
     if (votesString) {
       const votesToAdd = Number(votesString);
       if (isNaN(votesToAdd) || votesToAdd <= 0) {
@@ -37,8 +37,9 @@ const AdminDashboardPage = () => {
       try {
         const config = { headers: { Authorization: `Bearer ${auth.token}` } };
         const { data: updatedArtist } = await apiClient.put(`/api/admin/artists/${artistId}/add-hand-votes`, { votesToAdd }, config);
+        // Update local state to reflect the change
         setArtists(artists.map(a => a._id === artistId ? updatedArtist : a));
-        alert('Hand votes added successfully!');
+        alert(`Successfully added ${votesToAdd} hand votes!`);
       } catch (err) { 
         alert(err.response?.data?.message || 'Failed to add votes.'); 
       }
@@ -64,8 +65,8 @@ const AdminDashboardPage = () => {
               <tr>
                 <th className="text-left py-2 px-3">Artist</th>
                 <th className="py-2 px-3">Official Votes</th>
-                {/* --- THIS HEADER WAS MISSING --- */}
-                <th className="py-2 px-3">Hand Votes</th>
+                {/* --- ADDED THE MISSING HEADER --- */}
+                <th className="py-2 px-3">Hand Votes</th> 
                 <th className="py-2 px-3">Actions</th>
               </tr>
             </thead>
@@ -82,8 +83,8 @@ const AdminDashboardPage = () => {
                     </div>
                   </td>
                   <td className="py-3 px-3 text-center font-semibold">{artist.votes}</td>
-                  {/* --- THIS CELL WILL NOW DISPLAY CORRECTLY --- */}
-                  <td className="py-3 px-3 text-center font-semibold">{artist.handVotes}</td>
+                  {/* --- DISPLAYING THE HAND VOTES DATA (BUG FIX) --- */}
+                  <td className="py-3 px-3 text-center font-semibold">{artist.handVotes || 0}</td> 
                   <td className="py-3 px-3 text-center">
                     <button onClick={() => handleAddHandVotes(artist._id)} className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">
                       Add Hand Votes
