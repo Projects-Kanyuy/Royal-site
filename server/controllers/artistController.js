@@ -113,15 +113,6 @@ export const loginArtist = async (req, res) => {
         res.status(401).json({ message: 'Invalid email or password' });
     }
 };
-export const getArtistsForVoting = async (req, res) => {
-  try {
-      const artists = await Artist.find({ isApproved: true });
-      res.json(artists);
-  } catch (error) {
-      console.error('ERROR FETCHING ARTISTS FOR VOTE:', error);
-      res.status(500).json({ message: 'Could not retrieve artists' });
-  }
-};
 export const voteForArtist = async (req, res) => {
   try {
     const artist = await Artist.findById(req.params.id);
@@ -185,10 +176,24 @@ export const getArtistById = async (req, res) => {
 };
 // @desc    Add a single, free vote to an artist
 // @route   POST /api/artists/:id/manual-vote
+export const getArtistsForVoting = async (req, res) => {
+    // This function should also return handVotes
+    const artists = await Artist.find({ isApproved: true }).select('-password');
+    res.json(artists);
+};
+
+// @desc    Get leaderboard
+// @route   GET /api/artists/leaderboard
 export const getLeaderboard = async (req, res) => {
     try {
-        // --- CRITICAL CHANGE: SORT BY OFFICIAL VOTES ONLY ---
-        const artists = await Artist.find({ isApproved: true }).sort({ votes: -1 }).limit(10);
+        // --- THE FIX ---
+        // We ensure that the 'handVotes' field is included in the response.
+        // The .select('-password') ensures all other fields, including handVotes, are sent.
+        const artists = await Artist.find({ isApproved: true })
+            .sort({ votes: -1 })
+            .limit(10)
+            .select('-password'); // This is a safe way to include all fields except the password
+            
         res.json(artists);
     } catch (error) {
         console.error('ERROR FETCHING LEADERBOARD:', error);
@@ -202,15 +207,9 @@ export const addManualVote = async (req, res) => {
   try {
     const artist = await Artist.findById(req.params.id);
     if (artist) {
-      // --- CRITICAL CHANGE: ONLY UPDATE HAND VOTES ---
-      artist.handVotes += 1;
+      artist.handVotes += 1; // This logic is correct
       await artist.save();
-      
-      // Send back both new vote counts so the frontend can update everything
-      res.status(200).json({ 
-        message: 'Hand vote counted successfully!',
-        newHandVoteCount: artist.handVotes
-      });
+      res.status(200).json({ newHandVoteCount: artist.handVotes });
     } else {
       res.status(404).json({ message: 'Artist not found' });
     }

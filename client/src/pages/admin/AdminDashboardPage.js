@@ -23,7 +23,6 @@ const AdminDashboardPage = () => {
         setLoading(false);
       }
     };
-
     if (auth?.token) { fetchArtists(); }
   }, [auth]);
   
@@ -35,7 +34,6 @@ const AdminDashboardPage = () => {
         alert("Please enter a valid positive number.");
         return;
       }
-      
       try {
         const config = { headers: { Authorization: `Bearer ${auth.token}` } };
         const { data: updatedArtist } = await apiClient.put(`/api/admin/artists/${artistId}/add-hand-votes`, { votesToAdd }, config);
@@ -47,10 +45,7 @@ const AdminDashboardPage = () => {
     }
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate('/');
-  };
+  const handleLogout = () => { logout(); navigate('/'); };
   
   if (loading) return <p className="text-center p-8">Loading Artists...</p>;
   if (error) return <p className="text-center p-8 text-red-500">{error}</p>;
@@ -69,6 +64,7 @@ const AdminDashboardPage = () => {
               <tr>
                 <th className="text-left py-2 px-3">Artist</th>
                 <th className="py-2 px-3">Official Votes</th>
+                {/* --- ADDED THE MISSING COLUMN HEADER --- */}
                 <th className="py-2 px-3">Hand Votes</th>
                 <th className="py-2 px-3">Actions</th>
               </tr>
@@ -86,9 +82,10 @@ const AdminDashboardPage = () => {
                     </div>
                   </td>
                   <td className="py-3 px-3 text-center font-semibold">{artist.votes}</td>
+                  {/* --- DISPLAY THE HAND VOTES DATA --- */}
                   <td className="py-3 px-3 text-center font-semibold">{artist.handVotes}</td>
                   <td className="py-3 px-3 text-center">
-                    <button onClick={() => handleAddHandVotes(artist._id)} className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors">
+                    <button onClick={() => handleAddHandVotes(artist._id)} className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">
                       Add Hand Votes
                     </button>
                   </td>
@@ -101,5 +98,4 @@ const AdminDashboardPage = () => {
     </div>
   );
 };
-
 export default AdminDashboardPage;
