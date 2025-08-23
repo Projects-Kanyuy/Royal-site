@@ -64,7 +64,7 @@ const AdminDashboardPage = () => {
               <tr>
                 <th className="text-left py-2 px-3">Artist</th>
                 <th className="py-2 px-3">Official Votes</th>
-                {/* --- ADDED THE MISSING COLUMN HEADER --- */}
+                {/* --- THIS HEADER WAS MISSING --- */}
                 <th className="py-2 px-3">Hand Votes</th>
                 <th className="py-2 px-3">Actions</th>
               </tr>
@@ -82,7 +82,7 @@ const AdminDashboardPage = () => {
                     </div>
                   </td>
                   <td className="py-3 px-3 text-center font-semibold">{artist.votes}</td>
-                  {/* --- DISPLAY THE HAND VOTES DATA --- */}
+                  {/* --- THIS CELL WILL NOW DISPLAY CORRECTLY --- */}
                   <td className="py-3 px-3 text-center font-semibold">{artist.handVotes}</td>
                   <td className="py-3 px-3 text-center">
                     <button onClick={() => handleAddHandVotes(artist._id)} className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">

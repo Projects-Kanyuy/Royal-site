@@ -186,13 +186,13 @@ export const getArtistsForVoting = async (req, res) => {
 // @route   GET /api/artists/leaderboard
 export const getLeaderboard = async (req, res) => {
     try {
-        // --- THE FIX ---
-        // We ensure that the 'handVotes' field is included in the response.
-        // The .select('-password') ensures all other fields, including handVotes, are sent.
+        // --- THE CRITICAL FIX ---
+        // We must explicitly select all the fields we need, including 'handVotes'.
+        // Mongoose will automatically include _id.
         const artists = await Artist.find({ isApproved: true })
             .sort({ votes: -1 })
             .limit(10)
-            .select('-password'); // This is a safe way to include all fields except the password
+            .select('stageName genre profilePicture votes handVotes'); // <-- THIS LINE IS FIXED
             
         res.json(artists);
     } catch (error) {
@@ -200,6 +200,7 @@ export const getLeaderboard = async (req, res) => {
         res.status(500).json({ message: 'Could not retrieve leaderboard' });
     }
 };
+
 
 // @desc    Add a single, free vote to an artist
 // @route   POST /api/artists/:id/manual-vote
