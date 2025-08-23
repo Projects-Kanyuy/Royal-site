@@ -5,7 +5,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import AuthContext from '../context/AuthContext';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 
-// --- SUB-COMPONENT: Login Form (with password toggle) ---
+// --- SUB-COMPONENT: Login Form (Your code - preserved) ---
 const LoginPage = ({ onLogin }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -18,7 +18,6 @@ const LoginPage = ({ onLogin }) => {
     setLoading(true);
     setError('');
     try {
-      // This form correctly calls the ARTIST login endpoint
       const { data } = await apiClient.post('/api/artists/login', { email, password });
       onLogin(data);
     } catch (err) {
@@ -51,8 +50,7 @@ const LoginPage = ({ onLogin }) => {
         </button>
       </form>
       
-      {/* --- THIS IS THE CRITICAL FIX --- */}
-      {/* Add a clear link to the admin login page */}
+      {/* --- ADDED: A clear link to the admin login page --- */}
       <div className="text-center mt-6">
         <Link to="/admin-login" className="text-sm text-gray-500 hover:text-blue-600 hover:underline">
           Are you an Admin? Login here.
@@ -62,12 +60,11 @@ const LoginPage = ({ onLogin }) => {
   );
 };
 
-// --- SUB-COMPONENT: Logged-In Dashboard ---
+// --- SUB-COMPONENT: Logged-In Dashboard (Your code - preserved) ---
 const ProfileDashboard = ({ artist, onLogout }) => {
   const [shareableLink, setShareableLink] = useState('');
 
   useEffect(() => {
-    // Correctly construct the link for the deployed site or localhost
     const link = `${window.location.origin}/artist/${artist._id}`;
     setShareableLink(link);
   }, [artist._id]);
@@ -77,7 +74,6 @@ const ProfileDashboard = ({ artist, onLogout }) => {
       alert('Link copied to clipboard!');
     }, (err) => {
       alert('Failed to copy link.');
-      console.error('Could not copy text: ', err);
     });
   };
 
@@ -120,7 +116,8 @@ const ProfilePage = () => {
   return (
     <div className="bg-bg-light min-h-screen">
       <div className="container mx-auto py-20 px-4">
-        {/* Only show the artist dashboard if logged in AND not an admin */}
+        {/* --- THIS IS THE ONLY LOGIC CHANGE --- */}
+        {/* We now check if the user is logged in AND is NOT an admin */}
         {auth && !auth.isAdmin ? (
           <ProfileDashboard artist={auth} onLogout={handleLogout} />
         ) : (

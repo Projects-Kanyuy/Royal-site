@@ -96,19 +96,22 @@ export const registerArtist = async (req, res) => {
 
 // ... aother functions remain the same
 export const loginArtist = async (req, res) => {
-  const { email, password } = req.body;
-  const artist = await Artist.findOne({ email }).select('+password');
+    const { email, password } = req.body;
+    // We search the Artist collection
+    const artist = await Artist.findOne({ email }).select('+password');
 
-  if (artist && (await artist.matchPassword(password))) {
-      res.json({
-          _id: artist._id,
-          name: artist.name,
-          email: artist.email,
-          token: generateToken(artist._id),
-      });
-  } else {
-      res.status(401).json({ message: 'Invalid email or password' });
-  }
+    if (artist && (await artist.matchPassword(password))) {
+        // We return an object WITHOUT isAdmin field
+        res.json({
+            _id: artist._id,
+            name: artist.name,
+            email: artist.email,
+            token: generateToken(artist._id),
+            // No isAdmin field here
+        });
+    } else {
+        res.status(401).json({ message: 'Invalid email or password' });
+    }
 };
 export const getArtistsForVoting = async (req, res) => {
   try {
