@@ -1,46 +1,26 @@
 // server/routes/artistRoutes.js
 import express from 'express';
+const router = express.Router();
 import {
-  registerArtist,
-  loginArtist,
-  getArtistsForVoting,
-  getLeaderboard,
-  voteForArtist,
-  getArtistProfile,
-  updateArtistProfile,
-  getArtistById,
-  addManualVote
+  registerArtist, loginArtist, getArtistsForVoting, getLeaderboard,
+  getArtistById, getArtistProfile, updateArtistProfile, addHandVote
 } from '../controllers/artistController.js';
 import protect from '../middleware/authMiddleware.js';
 import multer from 'multer';
 
-const router = express.Router();
-
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-// All routes are prefixed with /api/artists
-
-// POST /api/artists/register
 router.post('/register', upload.single('profilePicture'), registerArtist);
-router.post('/:id/manual-vote', addManualVote);
-
-// POST /api/artists/login
 router.post('/login', loginArtist);
-
-// GET /api/artists/vote
 router.get('/vote', getArtistsForVoting);
-
-// GET /api/artists/leaderboard
 router.get('/leaderboard', getLeaderboard);
-
-// POST /api/artists/:id/vote
-router.post('/:id/vote', voteForArtist);
 router.get('/:id', getArtistById);
+router.post('/:id/hand-vote', addHandVote); // Renamed from manual-vote
 
-// GET & PUT /api/artists/profile
-router.route('/profile')
-  .get(protect, getArtistProfile)
-  .put(protect, updateArtistProfile);
+// Note: The old '/:id/vote' route is now handled by the payment controller
+// If you still have it here, it should be removed to avoid confusion.
+
+router.route('/profile').get(protect, getArtistProfile).put(protect, updateArtistProfile);
 
 export default router;

@@ -26,8 +26,8 @@ const AdminDashboardPage = () => {
     if (auth?.token) { fetchArtists(); }
   }, [auth]);
   
-  const handleAddHandVotes = async (artistId) => {
-    const votesString = prompt(`Enter the number of Hand Votes (cash votes) to add:`, "1");
+  const handleAddFinancialVotes = async (artistId) => {
+    const votesString = prompt(`Enter number of Financial (Cash) Votes to add:`, "0");
     if (votesString) {
       const votesToAdd = Number(votesString);
       if (isNaN(votesToAdd) || votesToAdd <= 0) {
@@ -36,19 +36,12 @@ const AdminDashboardPage = () => {
       }
       try {
         const config = { headers: { Authorization: `Bearer ${auth.token}` } };
-        const { data: updatedArtist } = await apiClient.put(`/api/admin/artists/${artistId}/add-hand-votes`, { votesToAdd }, config);
-        
-        // --- THIS IS THE CRITICAL FIX ---
-        // Use the functional form of setArtists to guarantee you are updating the latest state
-        setArtists(prevArtists => 
-          prevArtists.map(artist => 
-            artist._id === artistId ? updatedArtist : artist
-          )
+        const { data: updatedArtist } = await apiClient.put(
+          `/api/admin/artists/${artistId}/add-financial-votes`, { votesToAdd }, config
         );
-        alert(`Successfully added ${votesToAdd} hand votes!`);
-      } catch (err) { 
-        alert(err.response?.data?.message || 'Failed to add votes.'); 
-      }
+        setArtists(prev => prev.map(a => a._id === artistId ? updatedArtist : a));
+        alert('Financial votes added successfully!');
+      } catch (err) { alert('Failed to add votes.'); }
     }
   };
 
@@ -61,23 +54,23 @@ const AdminDashboardPage = () => {
     <div className="container mx-auto py-8 px-4">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Admin Panel</h1>
-        <button onClick={handleLogout} className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600">Logout</button>
+        <button onClick={handleLogout} className="bg-red-500 text-white px-4 py-2 rounded-md">Logout</button>
       </div>
       <div className="bg-white p-6 rounded-lg shadow-md">
-        <h2 className="text-xl font-semibold mb-4">Manage Hand (Cash) Votes</h2>
+        <h2 className="text-xl font-semibold mb-4">Manage Financial (Cash) Votes</h2>
         <div className="overflow-x-auto">
           <table className="min-w-full">
             <thead className="bg-gray-100">
               <tr>
                 <th className="text-left py-2 px-3">Artist</th>
-                <th className="py-2 px-3">Official Votes</th>
-                <th className="py-2 px-3">Hand Votes</th> 
+                <th className="py-2 px-3">CamPay Votes</th>
+                <th className="py-2 px-3">Financial Votes</th>
                 <th className="py-2 px-3">Actions</th>
               </tr>
             </thead>
             <tbody>
               {artists.map(artist => (
-                <tr key={artist._id} className="border-b hover:bg-gray-50">
+                <tr key={artist._id} className="border-b">
                   <td className="py-3 px-3">
                     <div className="flex items-center gap-3">
                       <img src={artist.profilePicture.url} alt={artist.stageName} className="w-12 h-12 rounded-full object-cover" />
@@ -88,10 +81,10 @@ const AdminDashboardPage = () => {
                     </div>
                   </td>
                   <td className="py-3 px-3 text-center font-semibold">{artist.votes || 0}</td>
-                  <td className="py-3 px-3 text-center font-semibold">{artist.handVotes || 0}</td> 
+                  <td className="py-3 px-3 text-center font-semibold">{artist.financialVotes || 0}</td>
                   <td className="py-3 px-3 text-center">
-                    <button onClick={() => handleAddHandVotes(artist._id)} className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">
-                      Add Hand Votes
+                    <button onClick={() => handleAddFinancialVotes(artist._id)} className="bg-blue-500 text-white px-4 py-2 rounded-md">
+                      Add Financial Votes
                     </button>
                   </td>
                 </tr>

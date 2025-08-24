@@ -186,37 +186,32 @@ export const getArtistsForVoting = async (req, res) => {
 // @route   GET /api/artists/leaderboard
 export const getLeaderboard = async (req, res) => {
     try {
-        // --- THE DEFINITIVE FIX FOR MISSING HAND VOTES ON LEADERBOARD ---
-        // We explicitly name every field needed to ensure it is returned,
-        // solving the issue of Mongoose dropping the 'handVotes' field.
-        const artists = await Artist.find({ isApproved: true })
-            .sort({ votes: -1 })
-            .limit(10)
-            .select('stageName genre profilePicture votes handVotes'); // <-- HAND VOTES GUARANTEED
+        const artists = await Artist.find({ isApproved: true });
+
+        // Sort in JavaScript based on the 'totalOfficialVotes' virtual property
+        const sortedArtists = artists.sort((a, b) => b.totalOfficialVotes - a.totalOfficialVotes).slice(0, 10);
             
-        res.json(artists);
+        res.json(sortedArtists);
     } catch (error) {
         console.error('ERROR FETCHING LEADERBOARD:', error);
         res.status(500).json({ message: 'Could not retrieve leaderboard' });
     }
 };
 
-
-
-// @desc    Add a single, free vote to an artist
-// @route   POST /api/artists/:id/manual-vote
-export const addManualVote = async (req, res) => {
+// @desc    Add a single, free "Hand Vote" to an artist
+// @route   POST /api/artists/:id/hand-vote
+export const addHandVote = async (req, res) => {
   try {
     const artist = await Artist.findById(req.params.id);
     if (artist) {
-      artist.handVotes += 1; // This logic is correct
+      artist.handVotes = (artist.handVotes || 0) + 1;
       await artist.save();
       res.status(200).json({ newHandVoteCount: artist.handVotes });
     } else {
       res.status(404).json({ message: 'Artist not found' });
     }
   } catch (error) {
-    console.error('ERROR PROCESSING MANUAL VOTE:', error);
+    console.error('ERROR PROCESSING HAND VOTE:', error);
     res.status(500).json({ message: 'Server error while processing your vote' });
   }
 };
