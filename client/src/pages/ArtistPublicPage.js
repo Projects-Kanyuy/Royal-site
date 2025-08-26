@@ -2,13 +2,9 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import apiClient from "../api/axios";
-import useCamPay from "../hooks/useCamPay"; // Re-use our custom hook
-import CamPayButton from "../components/CamPayButton"; // Re-use our payment button
+import CamPayButton from "../components/paymentButton"; // Re-use our payment button
 
 const ArtistPublicPage = () => {
-  // This hook loads the CamPay SDK script onto this page
-  useCamPay();
-
   const { id: artistId } = useParams(); // Get the artist's ID from the URL
   const [artist, setArtist] = useState(null);
   const [loading, setLoading] = useState(true);

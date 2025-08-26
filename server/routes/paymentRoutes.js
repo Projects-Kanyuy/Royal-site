@@ -1,9 +1,14 @@
-// server/routes/paymentRoutes.js
-import express from 'express';
-import { verifyPayment } from '../controllers/paymentController.js';
+import express from "express";
+import {
+  createPayment,
+  verifyPayment,
+  checkPaymentStatus,
+} from "../controllers/paymentController.js";
 
 const router = express.Router();
 
-router.post('/verify', verifyPayment);
+router.post("/create", createPayment);
+router.post("/verify", verifyPayment);
+router.get("/status/:transId", checkPaymentStatus);
 
 export default router;
