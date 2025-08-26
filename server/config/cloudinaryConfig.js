@@ -1,5 +1,6 @@
 // server/config/cloudinaryConfig.js
 import { v2 as cloudinary } from "cloudinary";
+import dotenv from "dotenv";
 
 dotenv.config();
 
@@ -17,11 +18,7 @@ if (
   });
   console.log("Cloudinary has been configured successfully.");
 } else {
-  console.error(
-    "\n\n!!! FATAL ERROR: CLOUDINARY CREDENTIALS ARE MISSING OR UNDEFINED IN .env FILE !!!\n\n"
-  );
-  // Optional: Exit the process if Cloudinary is absolutely required for the app to run
-  // process.exit(1);
+  console.log("Cloudinary credentials missing - running without Cloudinary");
 }
 
 export default cloudinary;

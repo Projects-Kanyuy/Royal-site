@@ -20,27 +20,30 @@ const CamPayButton = ({ artist, amount, onPaymentSuccess, onPaymentFail }) => {
       });
 
       const paymentLink = response.data.paymentUrl;
+      const transId = response.data.transId; // Get transaction ID
       console.log("Payment link received:", paymentLink);
 
-      // 2. Open the Campay modal in a new window
-      const campayWindow = window.open(
+      // 2. Open the payment modal in a new window
+      const paymentWindow = window.open(
         paymentLink,
         "_blank",
         "width=500,height=600,scrollbars=no,resizable=no"
       );
 
-      // 3. Optional: Poll to check if payment was completed
-      if (campayWindow) {
+      // 3. Poll to check if payment window closed
+      if (paymentWindow) {
         const checkPayment = setInterval(() => {
-          if (campayWindow.closed) {
+          if (paymentWindow.closed) {
             clearInterval(checkPayment);
-            // When modal closes, you can trigger a refresh or success message
-            if (onPaymentSuccess) {
-              onPaymentSuccess({ message: "Payment completed successfully!" });
-            }
+
+            // Window closed - show appropriate message
             alert(
-              "Thank you for your vote! The artist has received your support."
+              "Payment window closed. Your vote will be counted if payment was successful."
             );
+
+            // Don't assume success - the webhook will handle actual vote counting
+            // You could trigger a status check here if you want:
+            // checkPaymentStatus(transId);
           }
         }, 1000);
       }
@@ -53,6 +56,22 @@ const CamPayButton = ({ artist, amount, onPaymentSuccess, onPaymentFail }) => {
       if (onPaymentFail) onPaymentFail(error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Optional: Function to check payment status
+  const checkPaymentStatus = async (transId) => {
+    try {
+      const statusResponse = await apiClient.get(
+        `/api/payments/status/${transId}`
+      );
+      if (statusResponse.data.status === "SUCCESSFUL") {
+        alert("Payment successful! Thank you for your vote!");
+      } else {
+        console.log("Payment not completed or still pending");
+      }
+    } catch (error) {
+      console.error("Status check failed:", error);
     }
   };
 

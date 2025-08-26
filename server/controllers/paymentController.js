@@ -8,68 +8,46 @@ import Artist from "../models/Artist.js";
 export const createPayment = async (req, res) => {
   const { amount, artistId } = req.body;
   console.log("🎯 FAPSHI CREATE PAYMENT FUNCTION CALLED!");
-  console.log("Using API User:", process.env.FAPSHI_API_USER);
-  console.log("Using Base URL:", process.env.FAPSHI_BASE_URL);
 
-  // Try different endpoints
-  const endpointsToTry = [
-    "/initiate-pay", // Your suggestion
-    "/api/pay",
-    "/v1/pay",
-    "/payment/create",
-    "/payments/create",
-    "/transactions/create",
-  ];
-
-  for (const endpoint of endpointsToTry) {
-    try {
-      console.log(`🔄 Trying endpoint: ${endpoint}`);
-
-      const response = await axios.post(
-        `${process.env.FAPSHI_BASE_URL}${endpoint}`,
-        {
-          amount: amount,
-          currency: "XAF",
-          userId: artistId,
-          redirectUrl: `${process.env.FRONTEND_URL}/vote-success?artistId=${artistId}`,
-          webhookUrl: `${process.env.BACKEND_URL}/api/payments/verify`,
+  try {
+    const response = await axios.post(
+      `${process.env.FAPSHI_BASE_URL}/initiate-pay`, // ← JUST USE /initiate-pay
+      {
+        amount: amount,
+        currency: "XAF",
+        userId: artistId,
+        redirectUrl: `${process.env.FRONTEND_URL}/vote-success?artistId=${artistId}`,
+        webhookUrl: `${process.env.BACKEND_URL}/api/payments/verify`,
+      },
+      {
+        headers: {
+          apiuser: process.env.FAPSHI_API_USER,
+          apikey: process.env.FAPSHI_API_KEY,
+          "Content-Type": "application/json",
         },
-        {
-          headers: {
-            apiuser: process.env.FAPSHI_API_USER,
-            apikey: process.env.FAPSHI_API_KEY,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      }
+    );
 
-      const paymentData = response.data;
-      console.log("✅ SUCCESS with endpoint:", endpoint);
-      console.log("Fapshi API Response:", paymentData);
-
-      return res.status(200).json({
-        success: true,
-        paymentUrl: paymentData.link,
-        transId: paymentData.transId,
-      });
-    } catch (error) {
-      console.log(`❌ Endpoint ${endpoint} failed:`, error.response?.status);
-      // Continue to next endpoint
-    }
+    const paymentData = response.data;
+    res.status(200).json({
+      success: true,
+      paymentUrl: paymentData.link,
+      transId: paymentData.transId,
+    });
+  } catch (error) {
+    console.error("Fapshi Payment Error:", error.response?.data);
+    res.status(500).json({
+      message: "Failed to create payment link",
+      error: error.response?.data || error.message,
+    });
   }
-
-  // If all endpoints failed
-  console.error("❌ ALL Fapshi endpoints failed");
-  res.status(500).json({
-    message: "Failed to create payment link",
-    error:
-      "All API endpoints failed. Please check Fapshi documentation for the correct endpoint.",
-  });
 };
 
 // @desc    Verify Fapshi webhook (payment confirmation)
 // @route   POST /api/payments/verify
 export const verifyPayment = async (req, res) => {
+  console.log("🎯 WEBHOOK HIT! Headers:", req.headers);
+  console.log("🎯 WEBHOOK BODY:", req.body);
   try {
     const { transId, status, amount, userId } = req.body;
 
