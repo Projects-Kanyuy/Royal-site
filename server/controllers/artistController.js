@@ -202,24 +202,87 @@ export const getArtistsForVoting = async (req, res) => {
   res.json(artists);
 };
 
-// @desc    Get leaderboard
+// @desc    Get leaderboard with pagination (excluding top artist)
 // @route   GET /api/artists/leaderboard
 export const getLeaderboard = async (req, res) => {
   try {
-    const artists = await Artist.find({ isApproved: true });
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 9;
+    const skip = (page - 1) * limit;
 
-    // Sort in JavaScript based on the 'totalOfficialVotes' virtual property
-    const sortedArtists = artists
-      .sort((a, b) => b.totalOfficialVotes - a.totalOfficialVotes)
-      .slice(0, 10);
+    console.log(
+      `🧮 LEADERBOARD REQUEST: page=${page}, limit=${limit}, skip=${skip}`
+    );
 
-    res.json(sortedArtists);
+    // 1. Get ALL approved artists
+    const allArtists = await Artist.find({ isApproved: true });
+
+    console.log(`📊 Total approved artists: ${allArtists.length}`);
+
+    // 2. MANUALLY sort by totalOfficialVotes (since it's a virtual field)
+    allArtists.sort((a, b) => b.totalOfficialVotes - a.totalOfficialVotes);
+
+    console.log("🎤 ALL ARTISTS (MANUALLY sorted by votes DESC):");
+    allArtists.forEach((artist, index) => {
+      console.log(
+        `   ${index + 1}. ${artist.stageName} - ${
+          artist.totalOfficialVotes
+        } votes (ID: ${artist._id})`
+      );
+    });
+
+    // 3. Get the real #1 artist (first in sorted list)
+    const topArtist = allArtists.length > 0 ? allArtists[0] : null;
+
+    if (topArtist) {
+      console.log(
+        `🥇 REAL TOP ARTIST: ${topArtist.stageName} with ${topArtist.totalOfficialVotes} votes`
+      );
+    } else {
+      console.log("❌ No top artist found");
+    }
+
+    // 4. Get other artists for current page (excluding the real #1)
+    const otherArtists = allArtists
+      .filter(
+        (artist) =>
+          topArtist && artist._id.toString() !== topArtist._id.toString()
+      )
+      .slice(skip, skip + limit);
+
+    console.log(
+      `📄 Page ${page}: Showing ${otherArtists.length} other artists`
+    );
+    console.log("👥 OTHER ARTISTS for this page:");
+    otherArtists.forEach((artist, index) => {
+      const globalRank = index + 2 + skip; // +2 because #1 is separate, +skip for pagination
+      console.log(
+        `   ${globalRank}. ${artist.stageName} - ${artist.totalOfficialVotes} votes`
+      );
+    });
+
+    const totalOtherArtists = allArtists.length - (topArtist ? 1 : 0);
+
+    // 5. Send response
+    res.json({
+      topArtist,
+      otherArtists,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(totalOtherArtists / limit),
+        totalArtists: allArtists.length,
+        hasNext: page < Math.ceil(totalOtherArtists / limit),
+        hasPrev: page > 1,
+      },
+    });
+
+    console.log("✅ LEADERBOARD RESPONSE SENT");
+    console.log("========================================");
   } catch (error) {
-    console.error("ERROR FETCHING LEADERBOARD:", error);
+    console.error("❌ ERROR FETCHING LEADERBOARD:", error);
     res.status(500).json({ message: "Could not retrieve leaderboard" });
   }
 };
-
 // @desc    Add a single, free "Hand Vote" to an artist
 // @route   POST /api/artists/:id/hand-vote
 export const addHandVote = async (req, res) => {

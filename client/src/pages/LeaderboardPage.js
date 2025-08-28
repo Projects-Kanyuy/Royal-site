@@ -2,47 +2,67 @@
 import React, { useState, useEffect } from "react";
 import apiClient from "../api/axios";
 import { Link } from "react-router-dom";
-import { FaHandPointUp } from 'react-icons/fa';
+import { FaHandPointUp, FaChevronLeft, FaChevronRight } from "react-icons/fa";
 
 const LeaderboardPage = () => {
   const [artists, setArtists] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [votingId, setVotingId] = useState(null);
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalArtists: 0,
+    hasNext: false,
+    hasPrev: false,
+  });
+  const fetchLeaderboard = async (page = 1) => {
+    try {
+      setLoading(true);
+      const { data } = await apiClient.get(
+        `/api/artists/leaderboard?page=${page}&limit=9`
+      );
+      setArtists(data.otherArtists);
+      setTopArtist(data.topArtist);
+      setPagination(data.pagination);
+    } catch (err) {
+      setError("Could not load the leaderboard.");
+    } finally {
+      setLoading(false);
+    }
+  };
+  const [topArtist, setTopArtist] = useState(null);
 
   useEffect(() => {
-    const fetchLeaderboard = async () => {
-      try {
-        const { data } = await apiClient.get("/api/artists/leaderboard");
-        setArtists(data);
-      } catch (err) {
-        setError("Could not load the leaderboard.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchLeaderboard();
+    fetchLeaderboard(1);
   }, []);
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= pagination.totalPages) {
+      fetchLeaderboard(newPage);
+    }
+  };
 
   const handleHandVote = async (artistId) => {
     if (votingId) return;
     setVotingId(artistId);
     try {
-      const { data } = await apiClient.post(`/api/artists/${artistId}/hand-vote`);
-      setArtists(currentArtists =>
-        currentArtists.map(artist =>
-          artist._id === artistId ? { ...artist, handVotes: data.newHandVoteCount } : artist
+      const { data } = await apiClient.post(
+        `/api/artists/${artistId}/hand-vote`
+      );
+      setArtists((currentArtists) =>
+        currentArtists.map((artist) =>
+          artist._id === artistId
+            ? { ...artist, handVotes: data.newHandVoteCount }
+            : artist
         )
       );
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to add vote.');
+      alert(err.response?.data?.message || "Failed to add vote.");
     } finally {
       setVotingId(null);
     }
   };
-
-  const topArtist = artists.length > 0 ? artists[0] : null;
-  const otherArtists = artists.length > 1 ? artists.slice(1) : [];
 
   const getCardBg = (rank) => {
     if (rank === 2) return "bg-leaderboard-2";
@@ -50,65 +70,124 @@ const LeaderboardPage = () => {
     if (rank === 4 || rank === 5) return "bg-white";
     return "bg-card-dark";
   };
-  
+
   const getTextColor = (rank) => {
-    if (rank === 4 || rank === 5) return 'text-black';
+    if (rank === 4 || rank === 5) return "text-black";
     return rank > 3 ? "text-white" : "text-black";
   };
 
-  if (loading) return <div className="text-center text-lg p-10">Loading...</div>;
-  if (error) return <div className="text-center text-lg text-red-500 p-10">{error}</div>;
+  if (loading)
+    return <div className="text-center text-lg p-10">Loading...</div>;
+  if (error)
+    return <div className="text-center text-lg text-red-500 p-10">{error}</div>;
 
   return (
     <div className="bg-bg-light text-text-black min-h-screen">
       <div className="container mx-auto py-12 px-4">
         <div className="text-center mb-12">
-          <h3 className="text-lg font-bold uppercase tracking-wider">ROCIMUC 2025 TOP ARTISTS</h3>
-          <h1 className="font-display text-7xl text-brand-gold uppercase">Leaderboard</h1>
+          <h3 className="text-lg font-bold uppercase tracking-wider">
+            ROCIMUC 2025 TOP ARTISTS
+          </h3>
+          <h1 className="font-display text-7xl text-brand-gold uppercase">
+            Leaderboard
+          </h1>
         </div>
 
         {!loading && !error && topArtist && (
           <div className="flex flex-col md:flex-row gap-8 max-w-4xl mx-auto">
             <div className="flex-1">
               <div className="bg-leaderboard-1 text-white p-6 rounded-lg shadow-lg h-full flex flex-col items-center justify-center text-center relative">
-                <span className="absolute top-4 left-4 bg-black bg-opacity-20 px-3 py-1 text-xs rounded-full font-bold">TOP 1</span>
-                <img src={topArtist.profilePicture.url} alt={topArtist.stageName} className="w-40 h-40 rounded-full mx-auto border-4 border-white object-cover mb-4" />
+                <span className="absolute top-4 left-4 bg-black bg-opacity-20 px-3 py-1 text-xs rounded-full font-bold">
+                  TOP 1
+                </span>
+                <img
+                  src={topArtist.profilePicture.url}
+                  alt={topArtist.stageName}
+                  className="w-40 h-40 rounded-full mx-auto border-4 border-white object-cover mb-4"
+                />
                 <h3 className="text-3xl font-bold">{topArtist.stageName}</h3>
                 <p className="text-lg">{topArtist.genre || "Afrobeat"}</p>
                 <div className="mt-2 text-center">
-                    <p className="text-xl font-bold">{topArtist.totalOfficialVotes} Official Votes</p>
-                    <div className="flex items-center justify-center gap-2 mt-1 text-base opacity-80">
-                        <span>{topArtist.handVotes || 0} Hand Votes</span>
-                        <button onClick={() => handleHandVote(topArtist._id)} disabled={!!votingId} className="hover:text-yellow-300 transition disabled:opacity-50">
-                            {votingId === topArtist._id ? "..." : <FaHandPointUp />}
-                        </button>
-                    </div>
+                  <p className="text-xl font-bold">
+                    {topArtist.totalOfficialVotes} Official Votes
+                  </p>
+                  <div className="flex items-center justify-center gap-2 mt-1 text-base opacity-80">
+                    <span>{topArtist.handVotes || 0} Hand Votes</span>
+                    <button
+                      onClick={() => handleHandVote(topArtist._id)}
+                      disabled={!!votingId}
+                      className="hover:text-yellow-300 transition disabled:opacity-50"
+                    >
+                      {votingId === topArtist._id ? "..." : <FaHandPointUp />}
+                    </button>
+                  </div>
                 </div>
-                <Link to={`/artist/${topArtist._id}`} className="mt-4"><button className="bg-brand-yellow-vote text-black font-bold py-2 px-8 rounded-md">Vote</button></Link>
+                <Link to={`/artist/${topArtist._id}`} className="mt-4">
+                  <button className="bg-brand-yellow-vote text-black font-bold py-2 px-8 rounded-md">
+                    Vote
+                  </button>
+                </Link>
               </div>
             </div>
 
             <div className="flex-1 flex flex-col gap-4">
-              {otherArtists.map((artist, index) => {
-                const rank = index + 2;
+              {artists.map((artist, index) => {
+                const rank = index + 2 + (pagination.currentPage - 1) * 9;
+
                 const textColorClass = getTextColor(rank);
                 return (
-                  <div key={artist._id} className={`p-4 rounded-lg flex items-center shadow-lg ${getCardBg(rank)}`}>
-                    <span className={`text-2xl font-bold w-10 text-center ${textColorClass}`}>{rank}</span>
-                    <img src={artist.profilePicture.url} alt={artist.stageName} className="w-16 h-16 rounded-full mx-4 object-cover" />
+                  <div
+                    key={artist._id}
+                    className={`p-4 rounded-lg flex items-center shadow-lg ${getCardBg(
+                      rank
+                    )}`}
+                  >
+                    <span
+                      className={`text-2xl font-bold w-10 text-center ${textColorClass}`}
+                    >
+                      {rank}
+                    </span>
+                    <img
+                      src={artist.profilePicture.url}
+                      alt={artist.stageName}
+                      className="w-16 h-16 rounded-full mx-4 object-cover"
+                    />
                     <div className="flex-grow">
-                      <h3 className={`text-lg font-bold ${textColorClass}`}>{artist.stageName}</h3>
-                      <p className={`text-sm opacity-80 ${textColorClass}`}>{artist.genre || "Afrobeat"}</p>
+                      <h3 className={`text-lg font-bold ${textColorClass}`}>
+                        {artist.stageName}
+                      </h3>
+                      <p className={`text-sm opacity-80 ${textColorClass}`}>
+                        {artist.genre || "Afrobeat"}
+                      </p>
                     </div>
                     <div className={`ml-auto text-right pr-2`}>
-                        <p className={`font-bold text-sm ${textColorClass}`}>{artist.totalOfficialVotes} Official Votes</p>
-                        <div className={`flex items-center justify-end gap-2 text-xs opacity-80 ${textColorClass}`}>
-                            <span>{artist.handVotes || 0} Hand Votes</span>
-                            <button onClick={() => handleHandVote(artist._id)} disabled={!!votingId} className={`transition disabled:opacity-50 ${textColorClass === 'text-black' ? 'hover:text-gray-500' : 'hover:text-yellow-300'}`}>
-                               {votingId === artist._id ? ".." : <FaHandPointUp />}
-                            </button>
-                        </div>
-                        <Link to={`/artist/${artist._id}`} className="mt-1 inline-block"><button className="bg-brand-yellow-vote text-black text-xs font-bold py-1 px-4 rounded-md">Vote</button></Link>
+                      <p className={`font-bold text-sm ${textColorClass}`}>
+                        {artist.totalOfficialVotes} Official Votes
+                      </p>
+                      <div
+                        className={`flex items-center justify-end gap-2 text-xs opacity-80 ${textColorClass}`}
+                      >
+                        <span>{artist.handVotes || 0} Hand Votes</span>
+                        <button
+                          onClick={() => handleHandVote(artist._id)}
+                          disabled={!!votingId}
+                          className={`transition disabled:opacity-50 ${
+                            textColorClass === "text-black"
+                              ? "hover:text-gray-500"
+                              : "hover:text-yellow-300"
+                          }`}
+                        >
+                          {votingId === artist._id ? ".." : <FaHandPointUp />}
+                        </button>
+                      </div>
+                      <Link
+                        to={`/artist/${artist._id}`}
+                        className="mt-1 inline-block"
+                      >
+                        <button className="bg-brand-yellow-vote text-black text-xs font-bold py-1 px-4 rounded-md">
+                          Vote
+                        </button>
+                      </Link>
                     </div>
                   </div>
                 );
@@ -117,6 +196,31 @@ const LeaderboardPage = () => {
           </div>
         )}
       </div>
+
+      {/* pagination */}
+      {pagination.totalPages > 1 && (
+        <div className="flex justify-center items-center mt-8 space-x-4">
+          <button
+            onClick={() => handlePageChange(pagination.currentPage - 1)}
+            disabled={!pagination.hasPrev}
+            className="p-2 rounded bg-gray-200 disabled:opacity-50 hover:bg-gray-300"
+          >
+            <FaChevronLeft />
+          </button>
+
+          <span className="text-lg">
+            Page {pagination.currentPage} of {pagination.totalPages}
+          </span>
+
+          <button
+            onClick={() => handlePageChange(pagination.currentPage + 1)}
+            disabled={!pagination.hasNext}
+            className="p-2 rounded bg-gray-200 disabled:opacity-50 hover:bg-gray-300"
+          >
+            <FaChevronRight />
+          </button>
+        </div>
+      )}
     </div>
   );
 };
