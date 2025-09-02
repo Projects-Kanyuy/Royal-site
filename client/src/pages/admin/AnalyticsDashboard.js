@@ -75,8 +75,18 @@ const AnalyticsDashboard = () => {
     }
   };
   const handleExport = () => {
-    // Export functionality would go here
-    console.log("Export analytics data");
+    // Basic export functionality
+    const dataStr = JSON.stringify(analytics, null, 2);
+    const dataUri =
+      "data:application/json;charset=utf-8," + encodeURIComponent(dataStr);
+    const exportFileDefaultName = `analytics-${
+      new Date().toISOString().split("T")[0]
+    }.json`;
+
+    const linkElement = document.createElement("a");
+    linkElement.setAttribute("href", dataUri);
+    linkElement.setAttribute("download", exportFileDefaultName);
+    linkElement.click();
   };
 
   if (loading) return <DashboardSkeleton />;
@@ -136,40 +146,27 @@ const AnalyticsDashboard = () => {
         <MetricCard
           icon={<Vote className="w-6 h-6 text-green-600" />}
           title="Total Votes"
-          value={
-            (analytics.voteStats?.totalCamPayVotes || 0) +
-            (analytics.voteStats?.totalManualVotes || 0)
-          }
-          change={{ value: 12.5, isPositive: true }}
+          value={analytics.totalVotes || 0}
+          change={null}
           loading={loading}
         />
 
         <MetricCard
-          icon={<DollarSign className="w-6 h-6 text-purple-600" />}
-          title="Total Revenue"
-          value={`${(
-            (analytics.paymentStats?.[0]?.totalAmount || 0) +
-            (analytics.manualVoteStats?.reduce(
-              (sum, stat) => sum + stat.totalAmount,
-              0
-            ) || 0)
-          ).toLocaleString()} XAF`}
-          change={{ value: 8.2, isPositive: true }}
+          icon={<CreditCard className="w-6 h-6 text-purple-600" />}
+          title="Online Revenue"
+          value={`${(analytics.onlineRevenue || 0).toLocaleString()} XAF`}
+          change={null}
           loading={loading}
         />
 
         <MetricCard
-          icon={<TrendingUp className="w-6 h-6 text-orange-600" />}
-          title="Avg. Vote Value"
-          value={`${Math.round(
-            (analytics.paymentStats?.[0]?.totalAmount || 0) /
-              (analytics.paymentStats?.[0]?.totalVotes || 1) || 0
-          )} XAF`}
-          change={{ value: 5.1, isPositive: true }}
+          icon={<Banknote className="w-6 h-6 text-orange-600" />}
+          title="Manual Revenue"
+          value={`${(analytics.manualRevenue || 0).toLocaleString()} XAF`}
+          change={null}
           loading={loading}
         />
       </div>
-
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ChartCard
@@ -259,20 +256,25 @@ const ChartCard = ({ title, icon, children, fullWidth = false }) => (
 );
 
 const RevenuePieChart = ({ data }) => {
+  const onlineRevenue =
+    data.paymentStats?.find((p) => p._id === "SUCCESSFUL")?.totalAmount || 0;
+  const manualRevenue =
+    data.manualVoteStats?.reduce((sum, stat) => sum + stat.totalAmount, 0) || 0;
+  const totalRevenue = onlineRevenue + manualRevenue;
+
   const chartData = [
-    {
-      name: "Online Payments",
-      value: data.paymentStats?.[0]?.totalAmount || 0,
-    },
-    {
-      name: "Manual Votes",
-      value:
-        data.manualVoteStats?.reduce(
-          (sum, stat) => sum + stat.totalAmount,
-          0
-        ) || 0,
-    },
-  ];
+    { name: "Online Payments", value: onlineRevenue },
+    { name: "Manual Votes", value: manualRevenue },
+  ].filter((item) => item.value > 0);
+
+  if (chartData.length === 0) {
+    return (
+      <div className="h-full flex items-center justify-center text-gray-500">
+        <AlertCircle className="w-8 h-8 mr-2" />
+        No revenue data
+      </div>
+    );
+  }
 
   return (
     <ResponsiveContainer width="100%" height="100%">
@@ -282,7 +284,6 @@ const RevenuePieChart = ({ data }) => {
           cx="50%"
           cy="50%"
           outerRadius={80}
-          fill="#8884d8"
           dataKey="value"
           label={({ name, percent }) =>
             `${name} (${(percent * 100).toFixed(0)}%)`
@@ -292,7 +293,10 @@ const RevenuePieChart = ({ data }) => {
             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
           ))}
         </Pie>
-        <Tooltip formatter={(value) => [`${value} XAF`, "Amount"]} />
+        <Tooltip
+          formatter={(value) => [`${value.toLocaleString()} XAF`, "Amount"]}
+        />
+        <Legend />
       </RePieChart>
     </ResponsiveContainer>
   );

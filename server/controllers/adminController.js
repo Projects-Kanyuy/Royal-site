@@ -13,6 +13,7 @@ export const getAllArtistsForAdmin = async (req, res) => {
   }
 };
 
+// server/controllers/adminController.js
 // @desc    Delete an artist
 // @route   DELETE /api/admin/artists/:id
 export const deleteArtist = async (req, res) => {
@@ -23,13 +24,24 @@ export const deleteArtist = async (req, res) => {
       return res.status(404).json({ message: "Artist not found" });
     }
 
-    // Optional: Add logic here to also delete the artist's profile picture from storage (e.g., Cloudinary)
+    // DELETE ALL RELATED DATA FIRST
+    // Delete manual votes for this artist
+    await ManualVote.deleteMany({ artist: req.params.id });
+
+    // Delete payments for this artist
+    await Payment.deleteMany({ artistId: req.params.id });
+
+    // Optional: Delete profile picture from storage
     // if (artist.profilePicture.public_id) {
     //   await cloudinary.uploader.destroy(artist.profilePicture.public_id);
     // }
 
+    // Finally delete the artist
     await Artist.findByIdAndDelete(req.params.id);
-    res.json({ message: "Artist deleted successfully" });
+
+    res.json({
+      message: "Artist and all associated data deleted successfully",
+    });
   } catch (error) {
     console.error("Delete artist error:", error);
     res.status(500).json({ message: "Error deleting artist" });
@@ -90,7 +102,7 @@ export const getDashboardAnalytics = async (req, res) => {
     // 1. Total Artists
     const totalArtists = await Artist.countDocuments({ isApproved: true });
 
-    // 2. Total Votes Cast (Financial votes ARE manual votes)
+    // 2. Total Votes Cast from ALL artists
     const voteStats = await Artist.aggregate([
       {
         $group: {
@@ -108,14 +120,37 @@ export const getDashboardAnalytics = async (req, res) => {
       totalHandVotes: 0,
     };
 
-    // FIX: Calculate total votes and revenue correctly
-    const totalVotes =
-      voteData.totalCamPayVotes +
-      voteData.totalManualVotes +
-      voteData.totalHandVotes;
-    const totalRevenue = totalVotes * 100; // Each vote costs 100 XAF
+    // 3. Calculate revenues from TRANSACTION RECORDS (this ensures consistency)
+    // Online revenue from successful payments
+    const onlineRevenueResult = await Payment.aggregate([
+      { $match: { status: "SUCCESSFUL" } },
+      { $group: { _id: null, totalAmount: { $sum: "$amount" } } },
+    ]);
 
-    // 3. Financial Analytics (from ManualVote records)
+    // Manual revenue from manual votes
+    const manualRevenueResult = await ManualVote.aggregate([
+      { $group: { _id: null, totalAmount: { $sum: "$amount" } } },
+    ]);
+
+    const onlineRevenue = onlineRevenueResult[0]?.totalAmount || 0;
+    const manualRevenue = manualRevenueResult[0]?.totalAmount || 0;
+    const totalRevenue = onlineRevenue + manualRevenue;
+
+    // 4. Calculate total votes from TRANSACTION RECORDS (for consistency check)
+    const onlineVotesResult = await Payment.aggregate([
+      { $match: { status: "SUCCESSFUL" } },
+      { $group: { _id: null, totalVotes: { $sum: "$votesAdded" } } },
+    ]);
+
+    const manualVotesResult = await ManualVote.aggregate([
+      { $group: { _id: null, totalVotes: { $sum: "$votesAdded" } } },
+    ]);
+
+    const onlineVotes = onlineVotesResult[0]?.totalVotes || 0;
+    const manualVotes = manualVotesResult[0]?.totalVotes || 0;
+    const totalVotesFromTransactions = onlineVotes + manualVotes;
+
+    // 5. Financial Analytics (from ManualVote records)
     const manualVoteStats = await ManualVote.aggregate([
       {
         $group: {
@@ -127,7 +162,7 @@ export const getDashboardAnalytics = async (req, res) => {
       },
     ]);
 
-    // 4. Payment Analytics (online payments)
+    // 6. Payment Analytics (online payments)
     const paymentStats = await Payment.aggregate([
       {
         $group: {
@@ -139,74 +174,18 @@ export const getDashboardAnalytics = async (req, res) => {
       },
     ]);
 
-    // 5. Voting Trends (both online and manual)
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-    // Online payment trends
-    const onlineVoteTrends = await Payment.aggregate([
-      { $match: { status: "SUCCESSFUL", createdAt: { $gte: sevenDaysAgo } } },
-      {
-        $group: {
-          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
-          votes: { $sum: "$votesAdded" },
-          revenue: { $sum: "$amount" },
-          transactionCount: { $sum: 1 },
-        },
-      },
-      { $sort: { _id: 1 } },
-    ]);
-
-    // Manual vote trends
-    const manualVoteTrends = await ManualVote.aggregate([
-      { $match: { createdAt: { $gte: sevenDaysAgo } } },
-      {
-        $group: {
-          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
-          votes: { $sum: "$votesAdded" },
-          revenue: { $sum: "$amount" },
-          transactionCount: { $sum: 1 },
-        },
-      },
-      { $sort: { _id: 1 } },
-    ]);
-
-    // Add time-based analytics
-    const dailyStats = await Payment.aggregate([
-      {
-        $match: { status: "SUCCESSFUL" },
-      },
-      {
-        $group: {
-          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
-          totalVotes: { $sum: "$votesAdded" },
-          totalRevenue: { $sum: "$amount" },
-          transactionCount: { $sum: 1 },
-        },
-      },
-      { $sort: { _id: 1 } },
-    ]);
-
-    // Weekly/Monthly trends
-    const monthlyStats = await Payment.aggregate([
-      {
-        $match: { status: "SUCCESSFUL" },
-      },
-      {
-        $group: {
-          _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
-          totalVotes: { $sum: "$votesAdded" },
-          totalRevenue: { $sum: "$amount" },
-          transactionCount: { $sum: 1 },
-        },
-      },
-      { $sort: { _id: 1 } },
-    ]);
+    // ... (keep the rest of your trends and analytics code the same)
 
     res.json({
       totalArtists,
-      totalVotes, // ADDED: Total sum of all votes
-      totalRevenue, // ADDED: Total revenue (votes * 100 XAF)
+      totalVotes:
+        voteData.totalCamPayVotes +
+        voteData.totalManualVotes +
+        voteData.totalHandVotes,
+      totalVotesFromTransactions, // Added for debugging/consistency check
+      totalRevenue,
+      onlineRevenue,
+      manualRevenue,
       voteStats: voteData,
       paymentStats,
       manualVoteStats,
@@ -214,6 +193,15 @@ export const getDashboardAnalytics = async (req, res) => {
       manualVoteTrends,
       dailyStats,
       monthlyStats,
+      // Added consistency metrics for debugging
+      consistencyCheck: {
+        artistVotes: voteData.totalCamPayVotes + voteData.totalManualVotes,
+        transactionVotes: totalVotesFromTransactions,
+        difference:
+          voteData.totalCamPayVotes +
+          voteData.totalManualVotes -
+          totalVotesFromTransactions,
+      },
     });
   } catch (error) {
     console.error("Analytics error:", error);
