@@ -1,5 +1,6 @@
 import axios from "axios";
 import Artist from "../models/Artist.js";
+import { Payment } from "../models/Payment.js";
 
 // @desc    Generate a Fapshi payment link for voting
 // @route   POST /api/payments/create
@@ -43,8 +44,6 @@ export const createPayment = async (req, res) => {
   }
 };
 
-// @desc    Verify Fapshi webhook (payment confirmation)
-// @route   POST /api/payments/verify
 export const verifyPayment = async (req, res) => {
   console.log("🎯 WEBHOOK HIT! Headers:", req.headers);
   console.log("🎯 WEBHOOK BODY:", req.body);
@@ -61,15 +60,37 @@ export const verifyPayment = async (req, res) => {
     if (status === "SUCCESSFUL") {
       // Payment successful - update artist votes
       const artist = await Artist.findById(userId);
-      if (artist) {
-        const votesToAdd = Math.floor(amount / 100);
-        artist.votes += votesToAdd;
-        await artist.save();
-        console.log(
-          `✅ Added ${votesToAdd} votes to artist ${artist.stageName}`
-        );
+
+      if (!artist) {
+        console.log(`❌ Artist not found: ${userId}`);
+        return res.status(404).json({ message: "Artist not found" });
       }
 
+      const votesToAdd = Math.floor(amount / 100);
+      artist.votes += votesToAdd;
+      await artist.save();
+
+      // Record the payment transaction
+      try {
+        const paymentRecord = new Payment({
+          transId,
+          artist: userId,
+          amount,
+          currency: "XAF",
+          status: "SUCCESSFUL",
+          paymentMethod: "fapshi",
+          votesAdded: votesToAdd,
+          createdAt: new Date(),
+        });
+        await paymentRecord.save();
+        console.log(
+          `✅ Payment recorded: ${transId}, ${votesToAdd} votes added`
+        );
+      } catch (paymentError) {
+        console.error("❌ Failed to save payment record:", paymentError);
+      }
+
+      console.log(`✅ Added ${votesToAdd} votes to artist ${artist.stageName}`);
       res.status(200).json({ message: "Webhook processed successfully" });
     } else {
       console.log(`❌ Payment ${transId} failed with status: ${status}`);
@@ -83,7 +104,6 @@ export const verifyPayment = async (req, res) => {
     });
   }
 };
-
 // @desc    Check payment status (optional - for frontend polling)
 // @route   GET /api/payments/status/:transId
 export const checkPaymentStatus = async (req, res) => {
