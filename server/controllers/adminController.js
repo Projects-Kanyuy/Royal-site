@@ -132,8 +132,8 @@ export const getDashboardAnalytics = async (req, res) => {
       { $group: { _id: null, totalAmount: { $sum: "$amount" } } },
     ]);
 
-    const onlineRevenue = onlineRevenueResult[0]?.totalAmount || 0;
-    const manualRevenue = manualRevenueResult[0]?.totalAmount || 0;
+    const onlineRevenue = voteData.totalCamPayVotes * 100;
+    const manualRevenue = voteData.totalManualVotes * 100;
     const totalRevenue = onlineRevenue + manualRevenue;
 
     // 4. Calculate total votes from TRANSACTION RECORDS (for consistency check)
@@ -174,7 +174,69 @@ export const getDashboardAnalytics = async (req, res) => {
       },
     ]);
 
-    // ... (keep the rest of your trends and analytics code the same)
+    // 7. ADD BACK THE MISSING TREND AGGREGATIONS
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    // Online payment trends
+    const onlineVoteTrends = await Payment.aggregate([
+      { $match: { status: "SUCCESSFUL", createdAt: { $gte: sevenDaysAgo } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+          votes: { $sum: "$votesAdded" },
+          revenue: { $sum: "$amount" },
+          transactionCount: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]);
+
+    // Manual vote trends
+    const manualVoteTrends = await ManualVote.aggregate([
+      { $match: { createdAt: { $gte: sevenDaysAgo } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+          votes: { $sum: "$votesAdded" },
+          revenue: { $sum: "$amount" },
+          transactionCount: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]);
+
+    // Add time-based analytics
+    const dailyStats = await Payment.aggregate([
+      {
+        $match: { status: "SUCCESSFUL" },
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+          totalVotes: { $sum: "$votesAdded" },
+          totalRevenue: { $sum: "$amount" },
+          transactionCount: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]);
+
+    // Weekly/Monthly trends
+    const monthlyStats = await Payment.aggregate([
+      {
+        $match: { status: "SUCCESSFUL" },
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
+          totalVotes: { $sum: "$votesAdded" },
+          totalRevenue: { $sum: "$amount" },
+          transactionCount: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]);
 
     res.json({
       totalArtists,
@@ -182,18 +244,17 @@ export const getDashboardAnalytics = async (req, res) => {
         voteData.totalCamPayVotes +
         voteData.totalManualVotes +
         voteData.totalHandVotes,
-      totalVotesFromTransactions, // Added for debugging/consistency check
+      totalVotesFromTransactions,
       totalRevenue,
       onlineRevenue,
       manualRevenue,
       voteStats: voteData,
       paymentStats,
       manualVoteStats,
-      onlineVoteTrends,
-      manualVoteTrends,
-      dailyStats,
-      monthlyStats,
-      // Added consistency metrics for debugging
+      onlineVoteTrends, // Now this variable is defined
+      manualVoteTrends, // Now this variable is defined
+      dailyStats, // Now this variable is defined
+      monthlyStats, // Now this variable is defined
       consistencyCheck: {
         artistVotes: voteData.totalCamPayVotes + voteData.totalManualVotes,
         transactionVotes: totalVotesFromTransactions,

@@ -147,7 +147,7 @@ const AdminDashboardPage = () => {
           </span>
         </div>
 
-        <div className="overflow-x-auto rounded-lg border border-gray-200">
+        <div className="overflow-x-auto  rounded-lg border border-gray-200">
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>

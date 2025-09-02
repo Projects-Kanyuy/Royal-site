@@ -194,7 +194,7 @@ const AnalyticsDashboard = () => {
       </ChartCard>
 
       {/* Transactions Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <TransactionSection
           title="Online Payments"
           icon={<CreditCard className="w-5 h-5" />}
@@ -208,7 +208,7 @@ const AnalyticsDashboard = () => {
           data={analytics.manualVoteStats}
           type="manual"
         />
-      </div>
+      </div> */}
     </div>
   );
 };
@@ -256,10 +256,9 @@ const ChartCard = ({ title, icon, children, fullWidth = false }) => (
 );
 
 const RevenuePieChart = ({ data }) => {
-  const onlineRevenue =
-    data.paymentStats?.find((p) => p._id === "SUCCESSFUL")?.totalAmount || 0;
-  const manualRevenue =
-    data.manualVoteStats?.reduce((sum, stat) => sum + stat.totalAmount, 0) || 0;
+  // Use the main revenue values, not transaction amounts
+  const onlineRevenue = data.onlineRevenue || 0;
+  const manualRevenue = data.manualRevenue || 0;
   const totalRevenue = onlineRevenue + manualRevenue;
 
   const chartData = [
