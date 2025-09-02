@@ -185,13 +185,13 @@ const AnalyticsDashboard = () => {
       </div>
 
       {/* Trends Section */}
-      <ChartCard
+      {/* <ChartCard
         title="Voting Trends Over Time"
         icon={<Calendar className="w-5 h-5" />}
         fullWidth
       >
         <VotingTrendsChart data={analytics} />
-      </ChartCard>
+      </ChartCard> */}
 
       {/* Transactions Section */}
       {/* not need now */}
