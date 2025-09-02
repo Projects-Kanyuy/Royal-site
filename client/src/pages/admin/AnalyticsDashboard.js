@@ -194,6 +194,7 @@ const AnalyticsDashboard = () => {
       </ChartCard>
 
       {/* Transactions Section */}
+      {/* not need now */}
       {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <TransactionSection
           title="Online Payments"
