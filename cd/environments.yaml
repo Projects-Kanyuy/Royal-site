@@ -1,0 +1,7 @@
+- envId: prod
+  name: Production
+  gitRefName: release/prod/1.2
+  awsAccountId: 362954627441
+  domainName: royaltycity.site
+
+
