@@ -93,61 +93,61 @@ Resources:
           ],
         ]
 
-  # WebCert deploys the web certificates.
-  WebCert:
-    Type: "AWS::CertificateManager::Certificate"
-    Properties:
-      DomainName: !Ref "DomainName"
-      SubjectAlternativeNames:
-        - !Sub "www.${DomainName}"
-        - !Sub "api.${DomainName}"
-      ValidationMethod: DNS
-      Tags:
-        - Key: EnvId
-          Value: !Ref "EnvId"
+  # # WebCert deploys the web certificates.
+  # WebCert:
+  #   Type: "AWS::CertificateManager::Certificate"
+  #   Properties:
+  #     DomainName: !Ref "DomainName"
+  #     SubjectAlternativeNames:
+  #       - !Sub "www.${DomainName}"
+  #       - !Sub "api.${DomainName}"
+  #     ValidationMethod: DNS
+  #     Tags:
+  #       - Key: EnvId
+  #         Value: !Ref "EnvId"
 
-  # LoadBalancerStack deploys the default load balancer.
-  LoadBalancerStack:
-    Type: AWS::CloudFormation::Stack
-    DependsOn: [VpcStack, WebCert]
-    Properties:
-      Parameters:
-        EnvId: !Ref "EnvId"
-        VPC: !GetAtt VpcStack.Outputs.VPC
-        SubnetIds:
-          !Join [
-            ",",
-            [
-              !GetAtt VpcStack.Outputs.SubnetAPublic,
-              !GetAtt VpcStack.Outputs.SubnetBPublic,
-            ],
-          ]
-        CertificateArn: !Ref WebCert
-      Tags:
-        - Key: EnvId
-          Value: !Ref "EnvId"
-      TemplateURL:
-        !Join [
-          "",
-          [
-            "https://s3.amazonaws.com/",
-            !Ref "InfraArtifactsBucket",
-            "/cloudformation/",
-            !Ref "InfraReleaseHash",
-            "/aws-cloudformation-templates/core-components/load_balancer.yaml",
-          ],
-        ]
+  # # LoadBalancerStack deploys the default load balancer.
+  # LoadBalancerStack:
+  #   Type: AWS::CloudFormation::Stack
+  #   DependsOn: [VpcStack, WebCert]
+  #   Properties:
+  #     Parameters:
+  #       EnvId: !Ref "EnvId"
+  #       VPC: !GetAtt VpcStack.Outputs.VPC
+  #       SubnetIds:
+  #         !Join [
+  #           ",",
+  #           [
+  #             !GetAtt VpcStack.Outputs.SubnetAPublic,
+  #             !GetAtt VpcStack.Outputs.SubnetBPublic,
+  #           ],
+  #         ]
+  #       CertificateArn: !Ref WebCert
+  #     Tags:
+  #       - Key: EnvId
+  #         Value: !Ref "EnvId"
+  #     TemplateURL:
+  #       !Join [
+  #         "",
+  #         [
+  #           "https://s3.amazonaws.com/",
+  #           !Ref "InfraArtifactsBucket",
+  #           "/cloudformation/",
+  #           !Ref "InfraReleaseHash",
+  #           "/aws-cloudformation-templates/core-components/load_balancer.yaml",
+  #         ],
+  #       ]
 
-  EcsSecurityGroupALBports:
-    Type: "AWS::EC2::SecurityGroupIngress"
-    Properties:
-      GroupId: !GetAtt EcsStack.Outputs.EcsSecurityGroupId
-      IpProtocol: tcp
-      FromPort: 80
-      ToPort: 61000
-      SourceSecurityGroupId: !GetAtt LoadBalancerStack.Outputs.LoadBalancerSecurityGroupId
+  # EcsSecurityGroupALBports:
+  #   Type: "AWS::EC2::SecurityGroupIngress"
+  #   Properties:
+  #     GroupId: !GetAtt EcsStack.Outputs.EcsSecurityGroupId
+  #     IpProtocol: tcp
+  #     FromPort: 80
+  #     ToPort: 61000
+  #     SourceSecurityGroupId: !GetAtt LoadBalancerStack.Outputs.LoadBalancerSecurityGroupId
 
-  ThirdPartySecretsStack:
+  # ThirdPartySecretsStack:
     Type: AWS::CloudFormation::Stack
     Properties:
       Parameters:
