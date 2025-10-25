@@ -78,11 +78,11 @@ Resources:
       # "The Amazon Resource Name (ARN) of an AWS Identity and Access Management (IAM) role that grants containers in the task permission to call AWS APIs on your behalf."
       TaskRoleArn: !Ref TaskRole
       ContainerDefinitions:
-        - Name: App
+        - Name: !Ref AppName
           Image: !Ref Image
           PortMappings:
             - ContainerPort: !Ref ContainerPort
-              Name: server
+              Name: !Ref AppName
           # Send logs to CloudWatch Logs
           LogConfiguration:
             LogDriver: awslogs
