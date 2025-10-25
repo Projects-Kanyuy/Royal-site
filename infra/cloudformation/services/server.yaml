@@ -43,17 +43,26 @@ Parameters:
     Type: String
     Description: The ARN of the HTTPS listener that the service is registered with.
 
-  FirebaseServiceAccountSecretArn:
+  MongoDBSecretArn:
+    Type: String
+
+  CloudinarySecretArn:
+    Type: String
+
+  FapshiSecretArn:
+    Type: String
+
+  JWTSecretArn:
     Type: String
 
   # The following are optional parameters and are treated more like constants and input values.
   ContainerPort:
     Type: Number
-    Default: 80
+    Default: 8000
 
   AppName:
     Type: String
-    Default: "jsonproxy"
+    Default: "server"
 
 Resources:
   TaskDefinition:
@@ -73,7 +82,7 @@ Resources:
           Image: !Ref Image
           PortMappings:
             - ContainerPort: !Ref ContainerPort
-              Name: grpc
+              Name: server
           # Send logs to CloudWatch Logs
           LogConfiguration:
             LogDriver: awslogs
@@ -82,19 +91,29 @@ Resources:
               awslogs-group: !Ref LogGroupName
               awslogs-stream-prefix: !Ref AppName
           Environment:
-            - Name: LISTEN_PORT
+            - Name: PORT
               Value: !Ref ContainerPort
-            - Name: USERS_HOST_PORT
-              Value: users:80
-            - Name: PRODUCTS_HOST_PORT
-              Value: products:80
-            - Name: ORDERS_HOST_PORT
-              Value: orders:80
-            - Name: ALLOWED_ORIGINS
-              Value: "https://foodhouse-admin-dashboard-yfcu.vercel.app,https://foodhouse-admin-dashboard-bfsc.vercel.app"
+            - Name: FRONTEND_URL
+              Value: !Sub "https://${DomainName}"
+            - Name: BACKEND_URL
+              Value: !Sub "https://api.${DomainName}"
           Secrets:
-            - Name: FIREBASE_SERVICE_ACCOUNT_JSON
-              ValueFrom: !Sub "${FirebaseServiceAccountSecretArn}:::"
+            - Name: MONGO_URI
+              ValueFrom: !Sub "${MongoDBSecretArn}:mongo_uri::"
+            - Name: CLOUDINARY_CLOUD_NAME
+              ValueFrom: !Sub "${CloudinarySecretArn}:cloudinary_cloud_name::"
+            - Name: CLOUDINARY_API_KEY
+              ValueFrom: !Sub "${CloudinarySecretArn}:cloudinary_api_key::"
+            - Name: CLOUDINARY_API_SECRET
+              ValueFrom: !Sub "${CloudinarySecretArn}:cloudinary_api_secret::"
+            - Name: FAPSHI_API_USER
+              ValueFrom: !Sub "${FapshiSecretArn}:fapshi_api_user::"
+            - Name: FAPSHI_API_KEY
+              ValueFrom: !Sub "${FapshiSecretArn}:fapshi_api_key::"
+            - Name: FAPSHI_BASE_URL
+              ValueFrom: !Sub "${FapshiSecretArn}:fapshi_base_url::"
+            - Name: JWT_SECRET
+              ValueFrom: !Sub "${JWTSecretArn}:jwt_secret::"
 
     # A role needed by ECS to Start the Ecs Service
   ExecutionRole:
@@ -122,7 +141,10 @@ Resources:
                   - "secretsmanager:ListSecretVersionIds"
                   - "secretsmanager:ListSecrets"
                 Resource:
-                  - !Ref FirebaseServiceAccountSecretArn
+                  - !Ref MongoDBSecretArn
+                  - !Ref CloudinarySecretArn
+                  - !Ref CloudinarySecretArn
+                  - !Ref JWTSecretArn
 
   # A role for the containers
   TaskRole:
@@ -139,7 +161,7 @@ Resources:
 
   EcsService:
     Type: AWS::ECS::Service
-    DependsOn: [ApiTargetGroup, ApiListenerRule]
+    DependsOn: [TargetGroup, ListenerRule]
     Properties:
       ServiceName: !Sub "${EnvId}-${AppName}"
       Cluster: !Ref ClusterArn
@@ -150,24 +172,16 @@ Resources:
       DesiredCount: !Ref DesiredCount
       LaunchType: EC2
       LoadBalancers:
-        - ContainerName: App
+        - ContainerName: !Ref AppName
           ContainerPort: !Ref ContainerPort
-          TargetGroupArn: !Ref ApiTargetGroup
-      ServiceConnectConfiguration:
-        Enabled: true
-        Namespace: !Sub "${EnvId}"
-        Services:
-          - PortName: grpc
-            DiscoveryName: !Sub "${EnvId}-${AppName}-grpc"
-            ClientAliases:
-              - DnsName: !Ref AppName
-                Port: !Ref ContainerPort
+          TargetGroupArn: !Ref ServerTargetGroup
 
-  ApiTargetGroup:
+
+  TargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
       HealthCheckIntervalSeconds: 10
-      HealthCheckPath: "/v1/public/healthcheck"
+      HealthCheckPath: "/"
       HealthCheckTimeoutSeconds: 5
       UnhealthyThresholdCount: 2
       HealthyThresholdCount: 2
@@ -180,12 +194,12 @@ Resources:
       TargetType: instance
       VpcId: !Ref VPC
 
-  ApiListenerRule:
+  ListenerRule:
     Type: "AWS::ElasticLoadBalancingV2::ListenerRule"
     Properties:
       Actions:
         - Type: forward
-          TargetGroupArn: !Ref ApiTargetGroup
+          TargetGroupArn: !Ref ServerTargetGroup
       Conditions:
         - Field: host-header
           HostHeaderConfig:
