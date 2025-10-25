@@ -35,6 +35,7 @@ Parameters:
     AllowedValues:
       [
         t2.micro,
+        t3.micro,
         t2.small,
         t2.medium,
         t2.large,
