@@ -143,7 +143,7 @@ Resources:
                 Resource:
                   - !Ref MongoDBSecretArn
                   - !Ref CloudinarySecretArn
-                  - !Ref CloudinarySecretArn
+                  - !Ref FapshiSecretArn
                   - !Ref JWTSecretArn
 
   # A role for the containers
