@@ -174,7 +174,7 @@ Resources:
       LoadBalancers:
         - ContainerName: !Ref AppName
           ContainerPort: !Ref ContainerPort
-          TargetGroupArn: !Ref ServerTargetGroup
+          TargetGroupArn: !Ref TargetGroup
 
 
   TargetGroup:
@@ -199,7 +199,7 @@ Resources:
     Properties:
       Actions:
         - Type: forward
-          TargetGroupArn: !Ref ServerTargetGroup
+          TargetGroupArn: !Ref TargetGroup
       Conditions:
         - Field: host-header
           HostHeaderConfig:
