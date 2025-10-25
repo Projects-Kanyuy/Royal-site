@@ -146,25 +146,25 @@ Resources:
       ToPort: 61000
       SourceSecurityGroupId: !GetAtt LoadBalancerStack.Outputs.LoadBalancerSecurityGroupId
 
-  ThirdPartySecretsStack:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      Parameters:
-        EnvId: !Ref "EnvId"
-      Tags:
-        - Key: EnvId
-          Value: !Ref "EnvId"
-      TemplateURL:
-        !Join [
-          "",
-          [
-            "https://s3.amazonaws.com/",
-            !Ref "InfraArtifactsBucket",
-            "/cloudformation/",
-            !Ref "InfraReleaseHash",
-            "/components/third_party_secrets.yaml",
-          ],
-        ]
+  # ThirdPartySecretsStack:
+  #   Type: AWS::CloudFormation::Stack
+  #   Properties:
+  #     Parameters:
+  #       EnvId: !Ref "EnvId"
+  #     Tags:
+  #       - Key: EnvId
+  #         Value: !Ref "EnvId"
+  #     TemplateURL:
+  #       !Join [
+  #         "",
+  #         [
+  #           "https://s3.amazonaws.com/",
+  #           !Ref "InfraArtifactsBucket",
+  #           "/cloudformation/",
+  #           !Ref "InfraReleaseHash",
+  #           "/components/third_party_secrets.yaml",
+  #         ],
+  #       ]
 
 
   # ClientStack:
