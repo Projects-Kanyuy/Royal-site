@@ -231,6 +231,7 @@ Resources:
         CloudinarySecretArn: !GetAtt "ThirdPartySecretsStack.Outputs.CloudinarySecretArn"
         FapshiSecretArn: !GetAtt "ThirdPartySecretsStack.Outputs.FapshiSecretArn"
         JWTSecretArn: !GetAtt "ThirdPartySecretsStack.Outputs.JWTSecretArn"
+        AdminSecretArn: !GetAtt "ThirdPartySecretsStack.Outputs.AdminSecretArn"
         Image: !Ref ServerImageTag
       Tags:
         - Key: EnvId

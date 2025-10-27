@@ -55,6 +55,9 @@ Parameters:
   JWTSecretArn:
     Type: String
 
+  AdminSecretArn:
+    Type: String
+
   # The following are optional parameters and are treated more like constants and input values.
   ContainerPort:
     Type: Number
@@ -114,6 +117,13 @@ Resources:
               ValueFrom: !Sub "${FapshiSecretArn}:fapshi_base_url::"
             - Name: JWT_SECRET
               ValueFrom: !Sub "${JWTSecretArn}:jwt_secret::"
+            - Name: ADMIN_EMAIL
+              ValueFrom: !Sub "${AdminSecretArn}:admin_email::"
+            - Name: ADMIN_PASSWORD
+              ValueFrom: !Sub "${AdminSecretArn}:admin_password::"
+            - Name: ADMIN_JWT_SECRET
+              ValueFrom: !Sub "${AdminSecretArn}:admin_jwt_secret::"
+
 
     # A role needed by ECS to Start the Ecs Service
   ExecutionRole:
@@ -145,6 +155,7 @@ Resources:
                   - !Ref CloudinarySecretArn
                   - !Ref FapshiSecretArn
                   - !Ref JWTSecretArn
+                  - !Ref AdminSecretArn
 
   # A role for the containers
   TaskRole:
