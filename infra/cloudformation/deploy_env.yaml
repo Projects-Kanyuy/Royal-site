@@ -1,13 +1,18 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Metadata:
   License: Apache-2.0
-Description: "Deploys the environment stack for the Royal Site application."
+Description: "Deploys the environment stack for the Pressing managment Site application."
 Parameters:
   EnvId:
     Type: String
     Description: Environment Id (used to namespace resources)
     AllowedPattern: "[a-z][a-z0-9]{2,19}"
     ConstraintDescription: Must be lower case letters between 3 and 20 characters.
+  ProjectId:
+    Type: String
+    Description: Project Id (used to determine the specific project)
+    AllowedPattern: "^[a-z][a-z0-9-]{2,49}$"
+    ConstraintDescription: Must be lower case letters, digits, or hyphens (3-50 characters).
   InfraArtifactsBucket:
     Type: String
     Description: The bucket where the infra artifacts are stored (specifically the cloudformation templates).
@@ -40,11 +45,11 @@ Resources:
     Type: AWS::CloudFormation::Stack
     Properties:
       Parameters:
-        EnvId: !Ref "EnvId"
+        EnvId: !Sub "${ProjectId}-${EnvId}"
         IsDevelopmentGrade: true
       Tags:
         - Key: EnvId
-          Value: !Ref "EnvId"
+          Value: !Sub "${ProjectId}-${EnvId}"
         - Key: ReleaseTarget
           Value: !Ref "ReleaseTarget"
       TemplateURL:
@@ -63,7 +68,7 @@ Resources:
     Type: AWS::CloudFormation::Stack
     Properties:
       Parameters:
-        EnvId: !Ref "EnvId"
+        EnvId: !Sub "${ProjectId}-${EnvId}"
         VpcId: !GetAtt VpcStack.Outputs.VPC
         PrivateSubnetIds:
           !Join [
@@ -77,7 +82,7 @@ Resources:
         InstanceType: t3.micro
       Tags:
         - Key: EnvId
-          Value: !Ref "EnvId"
+          Value: !Sub "${ProjectId}-${EnvId}"
         - Key: ReleaseTarget
           Value: !Ref "ReleaseTarget"
       TemplateURL:
@@ -103,7 +108,7 @@ Resources:
       ValidationMethod: DNS
       Tags:
         - Key: EnvId
-          Value: !Ref "EnvId"
+          Value: !Sub "${ProjectId}-${EnvId}"
 
   # LoadBalancerStack deploys the default load balancer.
   LoadBalancerStack:
@@ -111,7 +116,7 @@ Resources:
     DependsOn: [VpcStack, WebCert]
     Properties:
       Parameters:
-        EnvId: !Ref "EnvId"
+        EnvId: !Sub "${ProjectId}-${EnvId}"
         VPC: !GetAtt VpcStack.Outputs.VPC
         SubnetIds:
           !Join [
@@ -124,7 +129,7 @@ Resources:
         CertificateArn: !Ref WebCert
       Tags:
         - Key: EnvId
-          Value: !Ref "EnvId"
+          Value: !Sub "${ProjectId}-${EnvId}"
       TemplateURL:
         !Join [
           "",
@@ -150,10 +155,10 @@ Resources:
     Type: AWS::CloudFormation::Stack
     Properties:
       Parameters:
-        EnvId: !Ref "EnvId"
+        EnvId: !Sub "${ProjectId}-${EnvId}"
       Tags:
         - Key: EnvId
-          Value: !Ref "EnvId"
+          Value: !Sub "${ProjectId}-${EnvId}"
       TemplateURL:
         !Join [
           "",
@@ -173,7 +178,7 @@ Resources:
       - VpcStack
     Properties:
       Parameters:
-        EnvId: !Ref "EnvId"
+        EnvId: !Sub "${ProjectId}-${EnvId}"
         VPC: !GetAtt VpcStack.Outputs.VPC
         LogGroupName: !Ref LogGroup
         ClusterArn: !GetAtt EcsStack.Outputs.ClusterArn
@@ -192,7 +197,7 @@ Resources:
         Image: !Ref ClientImageTag
       Tags:
         - Key: EnvId
-          Value: !Ref "EnvId"
+          Value: !Sub "${ProjectId}-${EnvId}"
       TemplateURL:
         !Join [
           "",
@@ -211,7 +216,7 @@ Resources:
       - VpcStack
     Properties:
       Parameters:
-        EnvId: !Ref "EnvId"
+        EnvId: !Sub "${ProjectId}-${EnvId}"
         VPC: !GetAtt VpcStack.Outputs.VPC
         LogGroupName: !Ref LogGroup
         ClusterArn: !GetAtt EcsStack.Outputs.ClusterArn
@@ -229,13 +234,17 @@ Resources:
         HttpsListener: !GetAtt LoadBalancerStack.Outputs.HttpsListener
         MongoDBSecretArn: !GetAtt "ThirdPartySecretsStack.Outputs.MongoDBSecretArn"
         CloudinarySecretArn: !GetAtt "ThirdPartySecretsStack.Outputs.CloudinarySecretArn"
-        FapshiSecretArn: !GetAtt "ThirdPartySecretsStack.Outputs.FapshiSecretArn"
         JWTSecretArn: !GetAtt "ThirdPartySecretsStack.Outputs.JWTSecretArn"
         AdminSecretArn: !GetAtt "ThirdPartySecretsStack.Outputs.AdminSecretArn"
+        SmtpSecretArn: !GetAtt "ThirdPartySecretsStack.Outputs.SmtpSecretArn"
+        TwilioSecretArn: !GetAtt "ThirdPartySecretsStack.Outputs.TwilioSecretArn"
+        DirectoryAdminSecretArn: !GetAtt "ThirdPartySecretsStack.Outputs.DirectoryAdminSecretArn"
+        ExchangeRateSecretArn: !GetAtt "ThirdPartySecretsStack.Outputs.ExchangeRateSecretArn"
+        AccountpeSecretArn: !GetAtt "ThirdPartySecretsStack.Outputs.AccountpeSecretArn"
         Image: !Ref ServerImageTag
       Tags:
         - Key: EnvId
-          Value: !Ref "EnvId"
+          Value: !Sub "${ProjectId}-${EnvId}"
       TemplateURL:
         !Join [
           "",

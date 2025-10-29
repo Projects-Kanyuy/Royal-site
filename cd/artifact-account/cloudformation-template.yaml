@@ -1,56 +1,37 @@
 AWSTemplateFormatVersion: 2010-09-09
+Description: >
+  Artifact account setup for project-specific build artifacts.
+  This stack provisions ECR repositories and an S3 bucket to store
+  build and infrastructure artifacts, isolated per project.
 
 Parameters:
+  ProjectId:
+    Type: String
+    Description: Unique project identifier (e.g., pressing-management)
+
   EnvironmentAccountIds:
     Type: List<String>
-    Description: List of account ids for the environment accounts
-
+    Description: List of account IDs for the environment accounts
 
 Resources:
 
-  EcrRepositoryClient:
-    Type: "AWS::ECR::Repository"
-    Properties:
-      RepositoryName: client
-
-  EcrRepositoryServer:
-    Type: "AWS::ECR::Repository"
-    Properties:
-      RepositoryName: server
-
-
-  ## This is a cross-account policy that allows the environment accounts to access the ECR repositories
-  CrossAccountRegistryPolicy:
-    Type: "AWS::ECR::RegistryPolicy"
-    Properties:
-      PolicyText:
-        Version: "2012-10-17"
-        Statement:
-          - Sid: UpdatedRegistryPolicy
-            Effect: Allow
-            Principal:
-              AWS:
-                !Split [
-                  ",",
-                  !Join [
-                    "",
-                    [
-                      "arn:aws:iam::",
-                      !Join [
-                        ":root,arn:aws:iam::",
-                        !Ref "EnvironmentAccountIds",
-                      ],
-                      ":root",
-                    ],
-                  ],
-                ]
-            Action: "ecr:*"
-            Resource: !Sub "arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/*"
-
+  #########################################################
+  # S3 Bucket for Infra Artifacts
+  #########################################################
   InfraArtifactsBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Join ["-", ["infra-artifacts", !Ref "AWS::AccountId"]]
+      BucketName: !Sub "${ProjectId}-infra-artifacts-${AWS::AccountId}"
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: ProjectId
+          Value: !Ref ProjectId
 
   InfraArtifactsBucketPolicy:
     Type: AWS::S3::BucketPolicy
@@ -59,26 +40,83 @@ Resources:
       PolicyDocument:
         Version: 2012-10-17
         Statement:
-          - Action:
-              - "s3:GetObject"
-              - "s3:ListBucket"
+          - Sid: AllowCrossAccountAccess
             Effect: Allow
-            Resource:
-              - !Sub "arn:aws:s3:::${InfraArtifactsBucket}/*"
-              - !Sub "arn:aws:s3:::${InfraArtifactsBucket}"
             Principal:
-              AWS: !Ref "EnvironmentAccountIds"
+              AWS: !Ref EnvironmentAccountIds
+            Action:
+              - s3:GetObject
+              - s3:ListBucket
+            Resource:
+              - !Sub "${InfraArtifactsBucket.Arn}/*"
+              - !GetAtt InfraArtifactsBucket.Arn
 
-## Output Values
+  #########################################################
+  # ECR Repositories (Client + Server) with cross-account access
+  #########################################################
+  ClientEcrRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub "${ProjectId}-client"
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      EncryptionConfiguration:
+        EncryptionType: AES256
+      RepositoryPolicyText:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: CrossAccountAccess
+            Effect: Allow
+            Principal:
+              AWS: !Ref EnvironmentAccountIds
+            Action:
+              - ecr:GetDownloadUrlForLayer
+              - ecr:BatchGetImage
+              - ecr:BatchCheckLayerAvailability
+              - ecr:PutImage
+              - ecr:InitiateLayerUpload
+              - ecr:UploadLayerPart
+              - ecr:CompleteLayerUpload
+      Tags:
+        - Key: ProjectId
+          Value: !Ref ProjectId
+
+  ServerEcrRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub "${ProjectId}-server"
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      EncryptionConfiguration:
+        EncryptionType: AES256
+      RepositoryPolicyText:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: CrossAccountAccess
+            Effect: Allow
+            Principal:
+              AWS: !Ref EnvironmentAccountIds
+            Action:
+              - ecr:GetDownloadUrlForLayer
+              - ecr:BatchGetImage
+              - ecr:BatchCheckLayerAvailability
+              - ecr:PutImage
+              - ecr:InitiateLayerUpload
+              - ecr:UploadLayerPart
+              - ecr:CompleteLayerUpload
+      Tags:
+        - Key: ProjectId
+          Value: !Ref ProjectId
+
 Outputs:
   InfraArtifactsBucket:
     Description: Artifact Bucket
-    Value: !Ref "InfraArtifactsBucket"
+    Value: !Ref InfraArtifactsBucket
 
-  EcrRepositoryClientArn:
-    Description: Client ECR Repository Arn
-    Value: !GetAtt EcrRepositoryClient.Arn
+  ClientEcrRepositoryArn:
+    Description: Client ECR Repository ARN
+    Value: !GetAtt ClientEcrRepository.Arn
 
-  EcrRepositoryServerArn:
-    Description: Server ECR Repository Arn
-    Value: !GetAtt EcrRepositoryServer.Arn
+  ServerEcrRepositoryArn:
+    Description: Server ECR Repository ARN
+    Value: !GetAtt ServerEcrRepository.Arn
