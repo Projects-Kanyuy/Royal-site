@@ -77,7 +77,7 @@ Resources:
             Options:
               awslogs-region: !Ref AWS::Region
               awslogs-group: !Ref LogGroupName
-              awslogs-stream-prefix: !Ref AppName
+              awslogs-stream-prefix: !Sub "${EnvId}-${AppName}"
           Environment:
             - Name: REACT_APP_BASE_URL
               Value: !Sub "https://api.${DomainName}"
@@ -136,7 +136,7 @@ Resources:
       HealthCheckTimeoutSeconds: 5
       UnhealthyThresholdCount: 2
       HealthyThresholdCount: 2
-      Name: !Sub "${AppName}-tg"
+      Name: !Sub "${EnvId}-${AppName}-TargetGroup"
       Protocol: HTTP
       Port: !Ref ContainerPort
       TargetGroupAttributes:
