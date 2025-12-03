@@ -1,0 +1,8 @@
+- envId: dev
+  name: Development
+  gitRefName: main
+  awsAccountId: 362954627441
+  domainName: royalcitysnack.site
+  projectName: royalcity
+
+

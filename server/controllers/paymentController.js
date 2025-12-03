@@ -1,68 +1,131 @@
-// server/controllers/paymentController.js
-import axios from 'axios'; 
-import Artist from '../models/Artist.js';
+import axios from "axios";
+import Artist from "../models/Artist.js";
+import { Payment } from "../models/Payment.js";
 
-// @desc    Verify a CamPay transaction and record a vote
-// @route   POST /api/payments/verify
-export const verifyPayment = async (req, res) => {
-  const { reference, artistId, amount } = req.body;
-
-  // 1. Initial Validation
-  if (!reference || !artistId || !amount) {
-    return res.status(400).json({ message: 'Missing payment details for verification.' });
-  }
-
-  // 2. Construct the Correct CamPay API URL
-  const campayApiUrl = `https://www.campay.net/api/transaction/${reference}/`;
-  
-  // 3. Prepare the Authorization Headers
-  const headers = {
-    'Authorization': `Token ${process.env.CAMPAY_API_TOKEN}`,
-    'Content-Type': 'application/json',
-  };
+// @desc    Generate a Fapshi payment link for voting
+// @route   POST /api/payments/create
+// @desc    Generate a Fapshi payment link for voting
+// @route   POST /api/payments/create
+export const createPayment = async (req, res) => {
+  const { amount, artistId } = req.body;
+  console.log("🎯 FAPSHI CREATE PAYMENT FUNCTION CALLED!");
 
   try {
-    console.log(`[Verification] Calling CamPay API: ${campayApiUrl}`);
-    
-    // 4. Make the GET request to CamPay to check the transaction status
-    const campayResponse = await axios.get(campayApiUrl, { headers });
-    const transaction = campayResponse.data;
-
-    console.log('[Verification] CamPay API Response:', transaction);
-
-    // 5. Securely Validate the Transaction
-    const transactionAmount = Number(transaction.amount);
-    const frontendAmount = Number(amount);
-
-    if (transaction.status === 'SUCCESSFUL' && transactionAmount === frontendAmount) {
-      console.log(`[Verification] SUCCESS. Amounts match (${transactionAmount}).`);
-      
-      const artist = await Artist.findById(artistId);
-      if (!artist) {
-        console.error(`[DB Error] Artist with ID ${artistId} not found after successful payment.`);
-        return res.status(404).json({ message: 'Artist not found. Your vote could not be recorded.' });
+    const response = await axios.post(
+      `${process.env.FAPSHI_BASE_URL}/initiate-pay`, // ← JUST USE /initiate-pay
+      {
+        amount: amount,
+        currency: "XAF",
+        userId: artistId,
+        redirectUrl: `${process.env.FRONTEND_URL}/vote-success?artistId=${artistId}`,
+        webhookUrl: `${process.env.BACKEND_URL}/api/payments/verify`,
+      },
+      {
+        headers: {
+          apiuser: process.env.FAPSHI_API_USER,
+          apikey: process.env.FAPSHI_API_KEY,
+          "Content-Type": "application/json",
+        },
       }
-      const votesToAdd = Math.floor(frontendAmount / 100);
+    );
+
+    const paymentData = response.data;
+    res.status(200).json({
+      success: true,
+      paymentUrl: paymentData.link,
+      transId: paymentData.transId,
+    });
+  } catch (error) {
+    console.error("Fapshi Payment Error:", error.response?.data);
+    res.status(500).json({
+      message: "Failed to create payment link",
+      error: error.response?.data || error.message,
+    });
+  }
+};
+
+export const verifyPayment = async (req, res) => {
+  console.log("🎯 WEBHOOK HIT! Headers:", req.headers);
+  console.log("🎯 WEBHOOK BODY:", req.body);
+  try {
+    const { transId, status, amount, userId } = req.body;
+
+    console.log("🎯 FAPSHI WEBHOOK RECEIVED:", {
+      transId,
+      status,
+      amount,
+      userId,
+    });
+
+    if (status === "SUCCESSFUL") {
+      // Payment successful - update artist votes
+      const artist = await Artist.findById(userId);
+
+      if (!artist) {
+        console.log(`❌ Artist not found: ${userId}`);
+        return res.status(404).json({ message: "Artist not found" });
+      }
+
+      const votesToAdd = Math.floor(amount / 100);
       artist.votes += votesToAdd;
       await artist.save();
-      
-      console.log(`[DB Success] Added ${votesToAdd} official vote(s) to ${artist.stageName}.`);
-      res.status(200).json({ message: `Your vote for ${artist.stageName} has been successfully recorded!` });
 
+      // Record the payment transaction
+      try {
+        const paymentRecord = new Payment({
+          transId,
+          artist: userId,
+          amount,
+          currency: "XAF",
+          status: "SUCCESSFUL",
+          paymentMethod: "fapshi",
+          votesAdded: votesToAdd,
+          createdAt: new Date(),
+        });
+        await paymentRecord.save();
+        console.log(
+          `✅ Payment recorded: ${transId}, ${votesToAdd} votes added`
+        );
+      } catch (paymentError) {
+        console.error("❌ Failed to save payment record:", paymentError);
+      }
+
+      console.log(`✅ Added ${votesToAdd} votes to artist ${artist.stageName}`);
+      res.status(200).json({ message: "Webhook processed successfully" });
     } else {
-      console.warn(`[Verification] FAILED. CamPay Status: ${transaction.status}, Frontend Amount: ${frontendAmount}, CamPay Amount: ${transactionAmount}`);
-      res.status(400).json({ message: 'Payment verification failed. Your vote was not recorded.' });
+      console.log(`❌ Payment ${transId} failed with status: ${status}`);
+      res.status(200).json({ message: "Webhook processed (failed payment)" });
     }
-
   } catch (error) {
-    console.error('\n---!!! CRITICAL ERROR DURING CAMPAY VERIFICATION !!!---\n');
-    if (error.response) {
-      console.error('CamPay responded with an error:');
-      console.error('Response Data:', error.response.data);
-      console.error('Response Status:', error.response.status);
-    } else {
-      console.error('General Error Message:', error.message);
-    }
-    res.status(500).json({ message: 'A server error occurred during payment verification. Please contact support.' });
+    console.error("Fapshi Webhook Error:", error);
+    res.status(500).json({
+      message: "Webhook processing error",
+      error: error.message,
+    });
+  }
+};
+// @desc    Check payment status (optional - for frontend polling)
+// @route   GET /api/payments/status/:transId
+export const checkPaymentStatus = async (req, res) => {
+  try {
+    const { transId } = req.params;
+
+    const response = await axios.get(
+      `${process.env.FAPSHI_BASE_URL}/transaction-status/${transId}`,
+      {
+        headers: {
+          apiuser: process.env.FAPSHI_API_USER,
+          apikey: process.env.FAPSHI_API_KEY,
+        },
+      }
+    );
+
+    res.status(200).json(response.data);
+  } catch (error) {
+    console.error("Fapshi Status Check Error:", error.response?.data);
+    res.status(500).json({
+      message: "Failed to check payment status",
+      error: error.response?.data || error.message,
+    });
   }
 };

@@ -1,40 +1,27 @@
 // server/controllers/artistController.js
-import Artist from '../models/Artist.js';
-import generateToken from '../utils/generateToken.js';
-import cloudinary from 'cloudinary';
-import axios from 'axios';
-
-// --- Cloudinary Configuration ---
-if (process.env.CLOUDINARY_CLOUD_NAME) {
-  cloudinary.v2.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
-    secure: true,
-  });
-  console.log('Cloudinary has been configured successfully.');
-} else {
-  console.error('!!! FATAL ERROR: CLOUDINARY CREDENTIALS ARE MISSING !!!');
-}
+import Artist from "../models/Artist.js";
+import generateToken from "../utils/generateToken.js";
+import cloudinary from "../config/cloudinaryConfig.js";
+import axios from "axios";
 
 /**
  * A helper function to upload a file buffer to Cloudinary with "fill" cropping.
  */
 const uploadFromBuffer = (buffer) => {
   return new Promise((resolve, reject) => {
-    if (!buffer) return reject(new Error('No file buffer provided.'));
-    
-    const uploadStream = cloudinary.v2.uploader.upload_stream(
+    if (!buffer) return reject(new Error("No file buffer provided."));
+
+    const uploadStream = cloudinary.uploader.upload_stream(
       {
         // --- THIS IS THE KEY CHANGE ---
         // This tells Cloudinary to resize the image to fit a 500x500px square.
         // It keeps the original aspect ratio and crops the edges as needed to fill the space.
         // 'gravity: auto' ensures the most interesting part of the image is kept.
-        folder: 'rocimuc_artists',
+        folder: "rocimuc_artists",
         width: 500,
         height: 500,
-        crop: 'fill', // Changed from 'thumb' to 'fill'
-        gravity: 'auto', // Changed from 'face' to 'auto'
+        crop: "fill", // Changed from 'thumb' to 'fill'
+        gravity: "auto", // Changed from 'face' to 'auto'
       },
       (error, result) => {
         if (error) return reject(error);
@@ -45,41 +32,65 @@ const uploadFromBuffer = (buffer) => {
   });
 };
 
-
 // @desc    Register a new artist
 // @route   POST /api/artists/register
 export const registerArtist = async (req, res) => {
-  console.log('--- A registration attempt has started ---');
-  console.log('Request Body Received:', req.body);
-  console.log('Request File Received:', req.file ? { fieldname: req.file.fieldname, size: req.file.size } : 'No File Received');
+  console.log("--- A registration attempt has started ---");
+  console.log("Request Body Received:", req.body);
+  console.log(
+    "Request File Received:",
+    req.file
+      ? { fieldname: req.file.fieldname, size: req.file.size }
+      : "No File Received"
+  );
 
-  const { name, email, password, age, stageName, cellNumber, whatsappNumber, bio } = req.body;
-  
+  const {
+    name,
+    email,
+    password,
+    age,
+    stageName,
+    cellNumber,
+    whatsappNumber,
+    bio,
+  } = req.body;
+
   if (!req.file) {
-    console.log('Registration failed: No file was uploaded with the request.');
-    return res.status(400).json({ message: 'A profile picture is required.' });
+    console.log("Registration failed: No file was uploaded with the request.");
+    return res.status(400).json({ message: "A profile picture is required." });
   }
 
   try {
     const artistExists = await Artist.findOne({ email });
     if (artistExists) {
-      console.log(`Registration failed: Artist with email ${email} already exists.`);
-      return res.status(400).json({ message: 'An artist with this email already exists.' });
+      console.log(
+        `Registration failed: Artist with email ${email} already exists.`
+      );
+      return res
+        .status(400)
+        .json({ message: "An artist with this email already exists." });
     }
-    
-    console.log('Attempting to upload image to Cloudinary...');
+
+    console.log("Attempting to upload image to Cloudinary...");
     const result = await uploadFromBuffer(req.file.buffer);
-    console.log('Cloudinary upload successful. Public ID:', result.public_id);
-    
-    console.log('Attempting to create artist in the database...');
+    console.log("Cloudinary upload successful. Public ID:", result.public_id);
+
+    console.log("Attempting to create artist in the database...");
     const artist = await Artist.create({
-      name, email, password, age, stageName, cellNumber, whatsappNumber, bio,
+      name,
+      email,
+      password,
+      age,
+      stageName,
+      cellNumber,
+      whatsappNumber,
+      bio,
       profilePicture: {
         public_id: result.public_id,
         url: result.secure_url,
       },
     });
-    console.log('Database creation successful for artist:', artist.email);
+    console.log("Database creation successful for artist:", artist.email);
 
     res.status(201).json({
       _id: artist._id,
@@ -88,71 +99,80 @@ export const registerArtist = async (req, res) => {
       token: generateToken(artist._id),
     });
   } catch (error) {
-    console.error('\n---!!! AN UNHANDLED ERROR OCCURRED IN THE REGISTRATION PROCESS !!!---\n');
+    console.error(
+      "\n---!!! AN UNHANDLED ERROR OCCURRED IN THE REGISTRATION PROCESS !!!---\n"
+    );
     console.error(error);
-    res.status(500).json({ message: 'Server error during registration. Please contact support.' });
+    res.status(500).json({
+      message: "Server error during registration. Please contact support.",
+    });
   }
 };
 
 // ... aother functions remain the same
 export const loginArtist = async (req, res) => {
-    const { email, password } = req.body;
-    // We search the Artist collection
-    const artist = await Artist.findOne({ email }).select('+password');
+  const { email, password } = req.body;
+  // We search the Artist collection
+  const artist = await Artist.findOne({ email }).select("+password");
 
-    if (artist && (await artist.matchPassword(password))) {
-        // We return an object WITHOUT isAdmin field
-        res.json({
-            _id: artist._id,
-            name: artist.name,
-            email: artist.email,
-            token: generateToken(artist._id),
-            // No isAdmin field here
-        });
-    } else {
-        res.status(401).json({ message: 'Invalid email or password' });
-    }
+  if (artist && (await artist.matchPassword(password))) {
+    // We return an object WITHOUT isAdmin field
+    res.json({
+      _id: artist._id,
+      name: artist.name,
+      email: artist.email,
+      token: generateToken(artist._id),
+      // No isAdmin field here
+    });
+  } else {
+    res.status(401).json({ message: "Invalid email or password" });
+  }
 };
 export const voteForArtist = async (req, res) => {
   try {
     const artist = await Artist.findById(req.params.id);
     if (artist) {
-        artist.votes += 1;
-        await artist.save();
-        res.json({ message: 'Vote counted successfully' });
+      artist.votes += 1;
+      await artist.save();
+      res.json({ message: "Vote counted successfully" });
     } else {
-        res.status(404).json({ message: 'Artist not found' });
+      res.status(404).json({ message: "Artist not found" });
     }
   } catch (error) {
-    console.error('ERROR PROCESSING VOTE:', error);
-    res.status(500).json({ message: 'Error processing your vote' });
+    console.error("ERROR PROCESSING VOTE:", error);
+    res.status(500).json({ message: "Error processing your vote" });
   }
 };
 export const getArtistProfile = async (req, res) => {
   if (req.artist) {
-      res.json(req.artist);
+    res.json(req.artist);
   } else {
-      res.status(404).json({ message: 'Artist not found' });
+    res.status(404).json({ message: "Artist not found" });
   }
 };
 export const updateArtistProfile = async (req, res) => {
   try {
-      const artist = await Artist.findById(req.artist._id);
-      if (artist) {
-          artist.name = req.body.name || artist.name;
-          artist.stageName = req.body.stageName || artist.stageName;
-          artist.bio = req.body.bio || artist.bio;
-          if (req.body.password) {
-              artist.password = req.body.password;
-          }
-          const updatedArtist = await artist.save();
-          res.json({ _id: updatedArtist._id, name: updatedArtist.name, email: updatedArtist.email, token: generateToken(updatedArtist._id) });
-      } else {
-          res.status(404).json({ message: 'Artist not found' });
+    const artist = await Artist.findById(req.artist._id);
+    if (artist) {
+      artist.name = req.body.name || artist.name;
+      artist.stageName = req.body.stageName || artist.stageName;
+      artist.bio = req.body.bio || artist.bio;
+      if (req.body.password) {
+        artist.password = req.body.password;
       }
+      const updatedArtist = await artist.save();
+      res.json({
+        _id: updatedArtist._id,
+        name: updatedArtist.name,
+        email: updatedArtist.email,
+        token: generateToken(updatedArtist._id),
+      });
+    } else {
+      res.status(404).json({ message: "Artist not found" });
+    }
   } catch (error) {
-      console.error('ERROR UPDATING PROFILE:', error);
-      res.status(500).json({ message: 'Error updating profile' });
+    console.error("ERROR UPDATING PROFILE:", error);
+    res.status(500).json({ message: "Error updating profile" });
   }
 };
 export const getArtistById = async (req, res) => {
@@ -167,37 +187,102 @@ export const getArtistById = async (req, res) => {
         profilePicture: artist.profilePicture,
       });
     } else {
-      res.status(404).json({ message: 'Artist not found' });
+      res.status(404).json({ message: "Artist not found" });
     }
   } catch (error) {
-    console.error('ERROR FETCHING SINGLE ARTIST:', error);
-    res.status(404).json({ message: 'Artist not found or invalid ID' });
+    console.error("ERROR FETCHING SINGLE ARTIST:", error);
+    res.status(404).json({ message: "Artist not found or invalid ID" });
   }
 };
 // @desc    Add a single, free vote to an artist
 // @route   POST /api/artists/:id/manual-vote
 export const getArtistsForVoting = async (req, res) => {
-    // This function should also return handVotes
-    const artists = await Artist.find({ isApproved: true }).select('-password');
-    res.json(artists);
+  // This function should also return handVotes
+  const artists = await Artist.find({ isApproved: true }).select("-password");
+  res.json(artists);
 };
 
-// @desc    Get leaderboard
+// @desc    Get leaderboard with pagination (excluding top artist)
 // @route   GET /api/artists/leaderboard
 export const getLeaderboard = async (req, res) => {
-    try {
-        const artists = await Artist.find({ isApproved: true });
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 9;
+    const skip = (page - 1) * limit;
 
-        // Sort in JavaScript based on the 'totalOfficialVotes' virtual property
-        const sortedArtists = artists.sort((a, b) => b.totalOfficialVotes - a.totalOfficialVotes).slice(0, 10);
-            
-        res.json(sortedArtists);
-    } catch (error) {
-        console.error('ERROR FETCHING LEADERBOARD:', error);
-        res.status(500).json({ message: 'Could not retrieve leaderboard' });
+    console.log(
+      `🧮 LEADERBOARD REQUEST: page=${page}, limit=${limit}, skip=${skip}`
+    );
+
+    // 1. Get ALL approved artists
+    const allArtists = await Artist.find({ isApproved: true });
+
+    console.log(`📊 Total approved artists: ${allArtists.length}`);
+
+    // 2. MANUALLY sort by totalOfficialVotes (since it's a virtual field)
+    allArtists.sort((a, b) => b.totalOfficialVotes - a.totalOfficialVotes);
+
+    console.log("🎤 ALL ARTISTS (MANUALLY sorted by votes DESC):");
+    allArtists.forEach((artist, index) => {
+      console.log(
+        `   ${index + 1}. ${artist.stageName} - ${
+          artist.totalOfficialVotes
+        } votes (ID: ${artist._id})`
+      );
+    });
+
+    // 3. Get the real #1 artist (first in sorted list)
+    const topArtist = allArtists.length > 0 ? allArtists[0] : null;
+
+    if (topArtist) {
+      console.log(
+        `🥇 REAL TOP ARTIST: ${topArtist.stageName} with ${topArtist.totalOfficialVotes} votes`
+      );
+    } else {
+      console.log("❌ No top artist found");
     }
-};
 
+    // 4. Get other artists for current page (excluding the real #1)
+    const otherArtists = allArtists
+      .filter(
+        (artist) =>
+          topArtist && artist._id.toString() !== topArtist._id.toString()
+      )
+      .slice(skip, skip + limit);
+
+    console.log(
+      `📄 Page ${page}: Showing ${otherArtists.length} other artists`
+    );
+    console.log("👥 OTHER ARTISTS for this page:");
+    otherArtists.forEach((artist, index) => {
+      const globalRank = index + 2 + skip; // +2 because #1 is separate, +skip for pagination
+      console.log(
+        `   ${globalRank}. ${artist.stageName} - ${artist.totalOfficialVotes} votes`
+      );
+    });
+
+    const totalOtherArtists = allArtists.length - (topArtist ? 1 : 0);
+
+    // 5. Send response
+    res.json({
+      topArtist,
+      otherArtists,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(totalOtherArtists / limit),
+        totalArtists: allArtists.length,
+        hasNext: page < Math.ceil(totalOtherArtists / limit),
+        hasPrev: page > 1,
+      },
+    });
+
+    console.log("✅ LEADERBOARD RESPONSE SENT");
+    console.log("========================================");
+  } catch (error) {
+    console.error("❌ ERROR FETCHING LEADERBOARD:", error);
+    res.status(500).json({ message: "Could not retrieve leaderboard" });
+  }
+};
 // @desc    Add a single, free "Hand Vote" to an artist
 // @route   POST /api/artists/:id/hand-vote
 export const addHandVote = async (req, res) => {
@@ -208,10 +293,12 @@ export const addHandVote = async (req, res) => {
       await artist.save();
       res.status(200).json({ newHandVoteCount: artist.handVotes });
     } else {
-      res.status(404).json({ message: 'Artist not found' });
+      res.status(404).json({ message: "Artist not found" });
     }
   } catch (error) {
-    console.error('ERROR PROCESSING HAND VOTE:', error);
-    res.status(500).json({ message: 'Server error while processing your vote' });
+    console.error("ERROR PROCESSING HAND VOTE:", error);
+    res
+      .status(500)
+      .json({ message: "Server error while processing your vote" });
   }
 };

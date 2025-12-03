@@ -37,7 +37,7 @@ const HomePage = () => {
             Register as an Artist
           </Link>
           <Link
-            to="/vote"
+            to="/leaderboard"
             className="bg-brand-gold text-black font-bold py-3 px-8 rounded-md shadow-lg hover:brightness-110 transition"
           >
             Vote now
