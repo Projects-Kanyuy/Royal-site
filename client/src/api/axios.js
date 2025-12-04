@@ -1,10 +1,15 @@
 // src/api/axios.js
 import axios from "axios";
 
-// Create an instance of axios with the base URL of your backend
+const isLocalhost =
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1";
+
 const apiClient = axios.create({
-  // baseURL: process.env.REACT_APP_SERVER_BASE_URL,
-  baseURL: "https://api.royalcitysnack.site",
+  baseURL: isLocalhost
+    ? "http://localhost:5000"               // Local backend
+    : "https://api.royalcitysnack.site",    // Live backend
+  withCredentials: true,
 });
 
 export default apiClient;

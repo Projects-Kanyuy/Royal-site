@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-// server/models/Payment.js
+
 const paymentSchema = new mongoose.Schema({
   transId: { type: String, required: true, unique: true },
   artist: {
@@ -14,8 +14,9 @@ const paymentSchema = new mongoose.Schema({
     enum: ["PENDING", "SUCCESSFUL", "FAILED"],
     default: "PENDING",
   },
-  paymentMethod: { type: String, default: "fapshi" },
-  votesAdded: { type: Number, required: true },
+  paymentMethod: { type: String, default: "swychr" },
+  votesAdded: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now },
 });
-export const Payment = mongoose.model("Payment", paymentSchema);
+
+export default mongoose.model("Payment", paymentSchema);

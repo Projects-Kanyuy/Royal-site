@@ -19,8 +19,8 @@ const CamPayButton = ({ artist, amount, onPaymentSuccess, onPaymentFail }) => {
         amount: amount,
       });
 
-      const paymentLink = response.data.paymentUrl;
-      const transId = response.data.transId; // Get transaction ID
+      const paymentLink = response.data.payment_url;
+       const transId = response.data.transaction_id; // Get transaction ID
       console.log("Payment link received:", paymentLink);
 
       // 2. Open the payment modal in a new window

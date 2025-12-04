@@ -1,7 +1,7 @@
 // server/controllers/adminController.js
 import Artist from "../models/Artist.js";
 import { ManualVote } from "../models/ManualVote.js";
-import { Payment } from "../models/Payment.js";
+import  Payment  from "../models/Payment.js";
 
 // @desc    Get all artists for the admin panel
 export const getAllArtistsForAdmin = async (req, res) => {

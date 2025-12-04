@@ -1,14 +1,17 @@
+// routes/paymentRoutes.js
+
 import express from "express";
 import {
   createPayment,
-  verifyPayment,
-  checkPaymentStatus,
+  verifyPayment
 } from "../controllers/paymentController.js";
 
 const router = express.Router();
 
-router.post("/create", createPayment);
-router.post("/verify", verifyPayment);
-router.get("/status/:transId", checkPaymentStatus);
+// Create Swychr payment link
+router.post("/create",createPayment);
+
+// Verify the payment and update vote count
+router.post("/verify",verifyPayment);
 
 export default router;
