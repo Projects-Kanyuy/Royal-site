@@ -237,6 +237,7 @@ Resources:
         JWTSecretArn: !GetAtt "ThirdPartySecretsStack.Outputs.JWTSecretArn"
         AdminSecretArn: !GetAtt "ThirdPartySecretsStack.Outputs.AdminSecretArn"
         FapshiSecretArn: !GetAtt "ThirdPartySecretsStack.Outputs.FapshiSecretArn"
+        AccountpeSecretArn: !GetAtt ThirdPartySecretsStack.Outputs.AccountpeSecretArn
         Image: !Ref ServerImageTag
       Tags:
         - Key: EnvId

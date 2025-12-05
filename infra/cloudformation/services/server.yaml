@@ -58,6 +58,9 @@ Parameters:
   AdminSecretArn:
     Type: String
 
+  AccountpeSecretArn:
+    Type: String
+
   # The following are optional parameters and are treated more like constants and input values.
   ContainerPort:
     Type: Number
@@ -100,6 +103,8 @@ Resources:
               Value: !Sub "https://${DomainName}"
             - Name: BACKEND_URL
               Value: !Sub "https://api.${DomainName}"
+            - Name: NODE_ENV
+              Value: "production"
           Secrets:
             - Name: MONGO_URI
               ValueFrom: !Sub "${MongoDBSecretArn}:mongo_uri::"
@@ -123,6 +128,12 @@ Resources:
               ValueFrom: !Sub "${AdminSecretArn}:admin_password::"
             - Name: ADMIN_JWT_SECRET
               ValueFrom: !Sub "${AdminSecretArn}:admin_jwt_secret::"
+            - Name: ACCOUNTPE_EMAIL
+              ValueFrom: !Sub "${AccountpeSecretArn}:email::"
+            - Name: ACCOUNTPE_PASSWORD
+              ValueFrom: !Sub "${AccountpeSecretArn}:password::"
+            - Name: ACCOUNTPE_PAYIN_BASE_URL
+              ValueFrom: !Sub "${AccountpeSecretArn}:base_url::"
 
 
     # A role needed by ECS to Start the Ecs Service
@@ -156,6 +167,7 @@ Resources:
                   - !Ref FapshiSecretArn
                   - !Ref JWTSecretArn
                   - !Ref AdminSecretArn
+                  - !Ref AccountpeSecretArn
 
   # A role for the containers
   TaskRole:
